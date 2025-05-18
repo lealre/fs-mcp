@@ -7,9 +7,10 @@ import (
 	"github.com/mark3labs/mcp-go/server"
 )
 
-func main() {
+func fileSystemMCP() *server.MCPServer {
+
 	mcpServer := server.NewMCPServer(
-		"fs-go-server",
+		"fs-mcp-server",
 		"1.0.0",
 		// server.WithResourceCapabilities(true, true),
 		// server.WithPromptCapabilities(true),
@@ -24,8 +25,6 @@ func main() {
 			mcp.Description("Path to list all entries"),
 		),
 	)
-	mcpServer.AddTool(listEntriesTool, handlerListEntries)
-
 	readFileTool := mcp.NewTool("read",
 		mcp.WithDescription("Read the contents of a file at a given path"),
 		mcp.WithString("path",
@@ -33,8 +32,6 @@ func main() {
 			mcp.Description("Path to the file to be read"),
 		),
 	)
-	mcpServer.AddTool(readFileTool, handlerReadFile)
-
 	writeFileTool := mcp.NewTool("write",
 		mcp.WithDescription("Create or overwrite a file with the given content"),
 		mcp.WithString("path",
@@ -46,7 +43,16 @@ func main() {
 			mcp.Description("Content to write to the file"),
 		),
 	)
-	mcpServer.AddTool(writeFileTool, handlerWriteToFile)
+
+	mcpServer.AddTool(listEntriesTool, handlersMiddleware(handlerListEntries))
+	mcpServer.AddTool(readFileTool, handlersMiddleware(handlerReadFile))
+	mcpServer.AddTool(writeFileTool, handlersMiddleware(handlerWriteToFile))
+
+	return mcpServer
+}
+
+func main() {
+	mcpServer := fileSystemMCP()
 
 	sseServer := server.NewSSEServer(mcpServer, server.WithBaseURL("http://localhost:8080"))
 	log.Printf("SSE server listening on :8080")
