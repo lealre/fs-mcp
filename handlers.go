@@ -64,3 +64,16 @@ func handlerWriteToFile(ctx context.Context, request mcp.CallToolRequest) (*mcp.
 
 	return mcp.NewToolResultText(msg), nil
 }
+
+func handlerGetFileInfo(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	path := request.Params.Arguments["path"].(string)
+
+	msg, err := getFileInfo(path)
+	if err != nil {
+		log.Printf("ERROR: %v\n", err)
+		return mcp.NewToolResultErrorFromErr("", err), err
+	}
+	log.Printf("Returning files info from file at: %v\n", path)
+
+	return mcp.NewToolResultText(msg), nil
+}

@@ -16,21 +16,21 @@ func fileSystemMCP() *server.MCPServer {
 		server.WithLogging(),
 	)
 
-	listEntriesTool := mcp.NewTool("list",
+	listEntriesTool := mcp.NewTool("listEntries",
 		mcp.WithDescription("List entries for a given path"),
 		mcp.WithString("path",
 			mcp.Required(),
 			mcp.Description("Path to list all entries"),
 		),
 	)
-	readFileTool := mcp.NewTool("read",
+	readFileTool := mcp.NewTool("readFromFile",
 		mcp.WithDescription("Read the contents of a file at a given path"),
 		mcp.WithString("path",
 			mcp.Required(),
 			mcp.Description("Path to the file to be read"),
 		),
 	)
-	writeFileTool := mcp.NewTool("write",
+	writeFileTool := mcp.NewTool("writeToFile",
 		mcp.WithDescription("Create or overwrite a file with the given content"),
 		mcp.WithString("path",
 			mcp.Required(),
@@ -41,10 +41,18 @@ func fileSystemMCP() *server.MCPServer {
 			mcp.Description("Content to write to the file"),
 		),
 	)
+	getFileInfo := mcp.NewTool("getFileInfo",
+		mcp.WithDescription("Retrieve file information including size, last modified time, detected MIME type, and file permissions"),
+		mcp.WithString("path",
+			mcp.Required(),
+			mcp.Description("Path to the file to retrieve information from"),
+		),
+	)
 
 	mcpServer.AddTool(listEntriesTool, handlersMiddleware(handlerListEntries))
 	mcpServer.AddTool(readFileTool, handlersMiddleware(handlerReadFile))
 	mcpServer.AddTool(writeFileTool, handlersMiddleware(handlerWriteToFile))
+	mcpServer.AddTool(getFileInfo, handlersMiddleware(handlerGetFileInfo))
 
 	return mcpServer
 }

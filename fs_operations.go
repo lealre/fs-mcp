@@ -2,8 +2,10 @@ package main
 
 import (
 	"fmt"
+	"net/http"
 	"os"
 	"path/filepath"
+	"time"
 	"unicode/utf8"
 )
 
@@ -97,4 +99,59 @@ func writeToFile(content, path string) (string, error) {
 	}
 
 	return "file written successfully", nil
+}
+
+func getFileInfo(path string) (string, error) {
+	info, err, exists := assertPath(path)
+	if err != nil {
+		return "", err
+	}
+	if info.IsDir() {
+		return "path is a directory, must be a file", nil
+	}
+
+	if !exists {
+		return fmt.Sprintf("path not found at %s", path), nil
+	}
+
+	mimetype, err := getMimeType(path)
+	if err != nil {
+		return "", err
+	}
+
+	perms := info.Mode().String()
+	modTime := info.ModTime().Format(time.RFC3339)
+
+	fileInfo := fmt.Sprintf(
+		"File: %s\n"+
+			"Size: %d bytes\n"+
+			"Permissions: %s\n"+
+			"Last Modified: %s\n"+
+			"MIME Type: %s\n",
+		path,
+		info.Size(),
+		perms,
+		modTime,
+		mimetype,
+	)
+
+	return fileInfo, nil
+}
+
+func getMimeType(path string) (string, error) {
+	file, err := os.Open(path)
+	if err != nil {
+		return "", err
+	}
+	defer file.Close()
+
+	// Read the first 512 bytes for MIME detection
+	buffer := make([]byte, 512)
+	_, err = file.Read(buffer)
+	if err != nil {
+		return "", err
+	}
+
+	mimeType := http.DetectContentType(buffer)
+	return mimeType, nil
 }
