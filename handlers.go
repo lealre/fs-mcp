@@ -35,12 +35,6 @@ func handlerListEntries(ctx context.Context, request mcp.CallToolRequest) (*mcp.
 		return mcp.NewToolResultErrorFromErr("", err), err
 	}
 
-	if strings.Contains(entries, "path not found") {
-		log.Printf("%s", entries)
-	} else {
-		log.Printf("Etries read from: %v\n", path)
-	}
-
 	return mcp.NewToolResultText(entries), nil
 }
 

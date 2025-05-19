@@ -12,8 +12,6 @@ func fileSystemMCP() *server.MCPServer {
 	mcpServer := server.NewMCPServer(
 		"fs-mcp-server",
 		"1.0.0",
-		// server.WithResourceCapabilities(true, true),
-		// server.WithPromptCapabilities(true),
 		server.WithToolCapabilities(true),
 		server.WithLogging(),
 	)

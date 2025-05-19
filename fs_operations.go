@@ -30,7 +30,7 @@ func listEntries(path string) (string, error) {
 	}
 
 	if !info.IsDir() {
-		return "", fmt.Errorf("path is not a directory")
+		return "path is not a directory", nil
 	}
 
 	entries, err := os.ReadDir(path)
@@ -56,11 +56,11 @@ func readFile(path string) (string, error) {
 		return "", err
 	}
 	if info.IsDir() {
-		return "", fmt.Errorf("path is a directory, must be a file")
+		return "path is a directory, must be a file", nil
 	}
 
 	if !exists {
-		return "", fmt.Errorf("path not found at %s", path)
+		return fmt.Sprintf("path not found at %s", path), nil
 	}
 
 	content, err := os.ReadFile(path)
@@ -70,7 +70,7 @@ func readFile(path string) (string, error) {
 
 	// Check if content is valid UTF-8 text
 	if !utf8.Valid(content) {
-		return "", fmt.Errorf("file is not valid UTF-8 text (likely binary)")
+		return "file is not valid UTF-8 text (likely binary)", nil
 	}
 
 	return string(content), nil
@@ -88,7 +88,7 @@ func writeToFile(content, path string) (string, error) {
 
 	info, err := os.Stat(path)
 	if err == nil && info.IsDir() {
-		return "", fmt.Errorf("path is a directory, must be a file")
+		return "path is a directory, must be a file", nil
 	}
 
 	err = os.WriteFile(path, []byte(content), 0644)
