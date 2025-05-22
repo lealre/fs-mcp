@@ -5,9 +5,27 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 	"unicode/utf8"
 )
+
+// Define a base directory for all file operations
+// TODO: Add this in middleware before calling any handler
+const baseDir = "."
+
+// isSafePath checks if the given path is within the base directory and does not contain directory traversal
+func isSafePath(base, target string) bool {
+	absBase, err := filepath.Abs(base)
+	if err != nil {
+		return false
+	}
+	absTarget, err := filepath.Abs(target)
+	if err != nil {
+		return false
+	}
+	return strings.HasPrefix(absTarget, absBase)
+}
 
 func assertPath(path string) (os.FileInfo, error, bool) {
 	fileInfo, err := os.Stat(path)
@@ -21,16 +39,14 @@ func assertPath(path string) (os.FileInfo, error, bool) {
 	return fileInfo, nil, true
 }
 
-func listEntries(path string) (string, error) {
+func listEntries(path string, depth int, prefix string) (string, error) {
 	info, err, exists := assertPath(path)
 	if err != nil {
 		return "", err
 	}
-
 	if !exists {
 		return fmt.Sprintf("path not found at %s", path), nil
 	}
-
 	if !info.IsDir() {
 		return "path is not a directory", nil
 	}
@@ -42,17 +58,27 @@ func listEntries(path string) (string, error) {
 
 	allEntries := ""
 	for _, entry := range entries {
+		entryPath := filepath.Join(path, entry.Name())
 		pathType := "file"
 		if entry.IsDir() {
 			pathType = "directory"
 		}
-		allEntries += fmt.Sprintf("- %s (%s)\n", entry.Name(), pathType)
+		allEntries += fmt.Sprintf("%s- %s (%s)\n", prefix, entry.Name(), pathType)
+		if entry.IsDir() && depth != 0 {
+			subEntries, err := listEntries(entryPath, depth-1, prefix+"  ")
+			if err != nil {
+				return "", err
+			}
+			allEntries += subEntries
+		}
 	}
-
 	return allEntries, nil
 }
 
 func readFile(path string) (string, error) {
+	if !isSafePath(baseDir, path) {
+		return "invalid or unsafe file path", nil
+	}
 	info, err, exists := assertPath(path)
 	if err != nil {
 		return "", err
@@ -65,7 +91,7 @@ func readFile(path string) (string, error) {
 		return fmt.Sprintf("path not found at %s", path), nil
 	}
 
-	content, err := os.ReadFile(path)
+	content, err := os.ReadFile(path) // #nosec G304
 	if err != nil {
 		return "", fmt.Errorf("error reading the file: %s", err)
 	}
@@ -79,10 +105,13 @@ func readFile(path string) (string, error) {
 }
 
 func writeToFile(content, path string) (string, error) {
+	if !isSafePath(baseDir, path) {
+		return "invalid or unsafe file path", nil
+	}
 	dir := filepath.Dir(path)
 
 	if _, err := os.Stat(dir); os.IsNotExist(err) {
-		err = os.MkdirAll(dir, 0755)
+		err = os.MkdirAll(dir, 0750)
 		if err != nil {
 			return "", fmt.Errorf("could not create directory: %s", err)
 		}
@@ -93,7 +122,7 @@ func writeToFile(content, path string) (string, error) {
 		return "path is a directory, must be a file", nil
 	}
 
-	err = os.WriteFile(path, []byte(content), 0644)
+	err = os.WriteFile(path, []byte(content), 0600)
 	if err != nil {
 		return "", fmt.Errorf("could not write to file: %s", err)
 	}
@@ -139,7 +168,10 @@ func getFileInfo(path string) (string, error) {
 }
 
 func getMimeType(path string) (string, error) {
-	file, err := os.Open(path)
+	if !isSafePath(baseDir, path) {
+		return "", fmt.Errorf("invalid or unsafe file path")
+	}
+	file, err := os.Open(path) // #nosec G304
 	if err != nil {
 		return "", err
 	}

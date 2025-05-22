@@ -17,10 +17,13 @@ func fileSystemMCP() *server.MCPServer {
 	)
 
 	listEntriesTool := mcp.NewTool("listEntries",
-		mcp.WithDescription("List entries for a given path"),
+		mcp.WithDescription("List entries at a given path"),
 		mcp.WithString("path",
 			mcp.Required(),
-			mcp.Description("Path to list all entries"),
+			mcp.Description("Path for which to list all entries"),
+		),
+		mcp.WithNumber("depth",
+			mcp.Description("Depth of the directory tree (default is 3)"),
 		),
 	)
 	readFileTool := mcp.NewTool("readFromFile",

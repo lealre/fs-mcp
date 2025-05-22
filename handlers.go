@@ -28,8 +28,9 @@ func handlersMiddleware(fn server.ToolHandlerFunc) server.ToolHandlerFunc {
 
 func handlerListEntries(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	path := request.Params.Arguments["path"].(string)
+	depth := request.Params.Arguments["depth"].(int)
 
-	entries, err := listEntries(path)
+	entries, err := listEntries(path, depth, "")
 	if err != nil {
 		log.Printf("ERROR: %v\n", err)
 		return mcp.NewToolResultErrorFromErr("", err), err
