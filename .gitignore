@@ -26,3 +26,6 @@ go.work.sum
 
 # Compiled program
 fs-mcp
+
+.vscode/
+todo.md
