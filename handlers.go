@@ -3,32 +3,32 @@ package main
 import (
 	"context"
 	"log"
-	"reflect"
-	"runtime"
-	"strings"
 
 	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/mark3labs/mcp-go/server"
 )
 
-func handlersMiddleware(fn server.ToolHandlerFunc) server.ToolHandlerFunc {
-	pc := reflect.ValueOf(fn).Pointer()
-	fullFuncName := runtime.FuncForPC(pc).Name()
+type handler struct {
+	baseDir string
+}
 
-	funcName := fullFuncName
-	if idx := strings.LastIndex(funcName, "."); idx >= 0 {
-		funcName = funcName[idx+1:]
-	}
-
+func (s *handler) withSafePath(
+	handler func(ctx context.Context, path string, request mcp.CallToolRequest) (*mcp.CallToolResult, error),
+) server.ToolHandlerFunc {
 	return func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-		log.Printf("'%s' called with params: %v", funcName, request.Params.Arguments)
-		return fn(ctx, request)
+		path := request.Params.Arguments["path"].(string)
+		if !isSafePath(s.baseDir, path) {
+			log.Printf("PATH NOT ALLOWED: path is outside of allowed base directory")
+			return mcp.NewToolResultText("access denied: path is outside of allowed base directory"), nil
+		}
+		return handler(ctx, path, request)
 	}
 }
 
-func handlerListEntries(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-	path := request.Params.Arguments["path"].(string)
-	depth := request.Params.Arguments["depth"].(int)
+func (s *handler) handlerListEntries(
+	ctx context.Context, path string, request mcp.CallToolRequest,
+) (*mcp.CallToolResult, error) {
+	depth := request.Params.Arguments["depth"].(float64)
 
 	entries, err := listEntries(path, depth, "")
 	if err != nil {
@@ -39,9 +39,9 @@ func handlerListEntries(ctx context.Context, request mcp.CallToolRequest) (*mcp.
 	return mcp.NewToolResultText(entries), nil
 }
 
-func handlerReadFile(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-	path := request.Params.Arguments["path"].(string)
-
+func (s *handler) handlerReadFile(
+	ctx context.Context, path string, request mcp.CallToolRequest,
+) (*mcp.CallToolResult, error) {
 	entries, err := readFile(path)
 	if err != nil {
 		log.Printf("ERROR: %v\n", err)
@@ -52,8 +52,9 @@ func handlerReadFile(ctx context.Context, request mcp.CallToolRequest) (*mcp.Cal
 	return mcp.NewToolResultText(entries), nil
 }
 
-func handlerWriteToFile(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-	path := request.Params.Arguments["path"].(string)
+func (s *handler) handlerWriteToFile(
+	ctx context.Context, path string, request mcp.CallToolRequest,
+) (*mcp.CallToolResult, error) {
 	content := request.Params.Arguments["content"].(string)
 
 	msg, err := writeToFile(content, path)
@@ -66,9 +67,9 @@ func handlerWriteToFile(ctx context.Context, request mcp.CallToolRequest) (*mcp.
 	return mcp.NewToolResultText(msg), nil
 }
 
-func handlerGetFileInfo(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-	path := request.Params.Arguments["path"].(string)
-
+func (s *handler) handlerGetFileInfo(
+	ctx context.Context, path string, request mcp.CallToolRequest,
+) (*mcp.CallToolResult, error) {
 	msg, err := getFileInfo(path)
 	if err != nil {
 		log.Printf("ERROR: %v\n", err)
@@ -77,4 +78,11 @@ func handlerGetFileInfo(ctx context.Context, request mcp.CallToolRequest) (*mcp.
 	log.Printf("Returning files info from file at: %v\n", path)
 
 	return mcp.NewToolResultText(msg), nil
+}
+
+func handlersMiddleware(name string, fn server.ToolHandlerFunc) server.ToolHandlerFunc {
+	return func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		log.Printf("'%s' called with params: %v", name, request.Params.Arguments)
+		return fn(ctx, request)
+	}
 }

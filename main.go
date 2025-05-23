@@ -16,6 +16,8 @@ func fileSystemMCP() *server.MCPServer {
 		server.WithLogging(),
 	)
 
+	h := &handler{baseDir: "/home/lealre/GitHub/ai-zero"}
+
 	listEntriesTool := mcp.NewTool("listEntries",
 		mcp.WithDescription("List entries at a given path"),
 		mcp.WithString("path",
@@ -45,17 +47,32 @@ func fileSystemMCP() *server.MCPServer {
 		),
 	)
 	getFileInfo := mcp.NewTool("getFileInfo",
-		mcp.WithDescription("Retrieve file information including size, last modified time, detected MIME type, and file permissions"),
+		mcp.WithDescription(
+			"Retrieve file information including size, last modified time, "+
+				"detected MIME type, and file permissions",
+		),
 		mcp.WithString("path",
 			mcp.Required(),
 			mcp.Description("Path to the file to retrieve information from"),
 		),
 	)
 
-	mcpServer.AddTool(listEntriesTool, handlersMiddleware(handlerListEntries))
-	mcpServer.AddTool(readFileTool, handlersMiddleware(handlerReadFile))
-	mcpServer.AddTool(writeFileTool, handlersMiddleware(handlerWriteToFile))
-	mcpServer.AddTool(getFileInfo, handlersMiddleware(handlerGetFileInfo))
+	mcpServer.AddTool(
+		listEntriesTool,
+		handlersMiddleware("listEntries", h.withSafePath(h.handlerListEntries)),
+	)
+	mcpServer.AddTool(
+		readFileTool,
+		handlersMiddleware("readFromFile", h.withSafePath(h.handlerReadFile)),
+	)
+	mcpServer.AddTool(
+		writeFileTool,
+		handlersMiddleware("writeToFile", h.withSafePath(h.handlerWriteToFile)),
+	)
+	mcpServer.AddTool(
+		getFileInfo,
+		handlersMiddleware("getFileInfo", h.withSafePath(h.handlerGetFileInfo)),
+	)
 
 	return mcpServer
 }
