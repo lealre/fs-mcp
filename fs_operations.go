@@ -76,12 +76,11 @@ func readFile(path string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	if info.IsDir() {
-		return "path is a directory, must be a file", nil
-	}
-
 	if !exists {
 		return fmt.Sprintf("path not found at %s", path), nil
+	}
+	if info.IsDir() {
+		return "path is a directory, must be a file", nil
 	}
 
 	content, err := os.ReadFile(path) // #nosec G304
@@ -125,12 +124,11 @@ func getFileInfo(path string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	if info.IsDir() {
-		return "path is a directory, must be a file", nil
-	}
-
 	if !exists {
 		return fmt.Sprintf("path not found at %s", path), nil
+	}
+	if info.IsDir() {
+		return "path is a directory, must be a file", nil
 	}
 
 	mimetype, err := getMimeType(path)
