@@ -174,3 +174,26 @@ func getMimeType(path string) (string, error) {
 	mimeType := http.DetectContentType(buffer)
 	return mimeType, nil
 }
+
+func renamePath(path, newName string) (string, error) {
+	_, err, exists := assertPath(path)
+	if err != nil {
+		return "", err
+	}
+
+	if !exists {
+		return fmt.Sprintf("path not found at %s", path), nil
+	}
+
+	fileDir := filepath.Dir(path)
+	newPathName := filepath.Join(fileDir, newName)
+
+	// Check if new name already exists
+	if _, err := os.Stat(newPathName); err == nil {
+		return fmt.Sprintf("target path %s already exists", newPathName), nil
+	}
+
+	os.Rename(path, newPathName)
+
+	return newPathName, nil
+}

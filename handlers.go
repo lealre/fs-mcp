@@ -80,6 +80,21 @@ func (s *handler) handlerGetFileInfo(
 	return mcp.NewToolResultText(msg), nil
 }
 
+func (s *handler) hadlerRenamePath(
+	ctx context.Context, path string, request mcp.CallToolRequest,
+) (*mcp.CallToolResult, error) {
+	newPathFinalName := request.Params.Arguments["newPathFinalName"].(string)
+
+	msg, err := renamePath(path, newPathFinalName)
+	if err != nil {
+		log.Printf("ERROR: %v\n", err)
+		return mcp.NewToolResultErrorFromErr("", err), err
+	}
+	log.Printf("Returning files info from file at: %v\n", path)
+
+	return mcp.NewToolResultText(msg), nil
+}
+
 func handlersMiddleware(name string, fn server.ToolHandlerFunc) server.ToolHandlerFunc {
 	return func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		log.Printf("'%s' called with params: %v", name, request.Params.Arguments)

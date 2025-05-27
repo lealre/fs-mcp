@@ -56,6 +56,17 @@ func fileSystemMCP() *server.MCPServer {
 			mcp.Description("Path to the file to retrieve information from"),
 		),
 	)
+	renamePath := mcp.NewTool("renamePath",
+		mcp.WithDescription("Renames a file or directory to a new name"),
+		mcp.WithString("path",
+			mcp.Required(),
+			mcp.Description("Path to the file or directory to be renamed"),
+		),
+		mcp.WithString("newPathFinalName",
+			mcp.Required(),
+			mcp.Description("New name for the file or directory (just the name, not the full path)"),
+		),
+	)
 
 	mcpServer.AddTool(
 		listEntriesTool,
@@ -72,6 +83,10 @@ func fileSystemMCP() *server.MCPServer {
 	mcpServer.AddTool(
 		getFileInfo,
 		handlersMiddleware("getFileInfo", h.withSafePath(h.handlerGetFileInfo)),
+	)
+	mcpServer.AddTool(
+		renamePath,
+		handlersMiddleware("renamePath", h.withSafePath(h.hadlerRenamePath)),
 	)
 
 	return mcpServer
