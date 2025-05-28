@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"io"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -194,4 +195,43 @@ func renamePath(path, newName string) (string, error) {
 	os.Rename(path, newPathName)
 
 	return newPathName, nil
+}
+
+func copyFile(path, destination string) (string, error) {
+	fileInfo, err, exists := assertPath(path)
+	if err != nil {
+		return "", err
+	}
+	if !exists {
+		return fmt.Sprintf("path not found at %s", path), nil
+	}
+
+	if fileInfo.IsDir() {
+		return "path is a directory, must be a file", nil
+	}
+
+	sourceFile, err := os.Open(path)
+	if err != nil {
+		return "", err
+	}
+	defer sourceFile.Close()
+
+	destFile, err := os.Create(destination)
+	if err != nil {
+		return "", err
+	}
+	defer destFile.Close()
+
+	_, err = io.Copy(destFile, sourceFile)
+	if err != nil {
+		return "", err
+	}
+
+	err = destFile.Sync()
+	if err != nil {
+		return "", nil
+	}
+
+	return "File copied to destination", nil
+
 }

@@ -95,6 +95,26 @@ func (s *handler) hadlerRenamePath(
 	return mcp.NewToolResultText(msg), nil
 }
 
+func (s *handler) hadlerCopyFile(
+	ctx context.Context, path string, request mcp.CallToolRequest,
+) (*mcp.CallToolResult, error) {
+	destination := request.Params.Arguments["destination"].(string)
+
+	if !isSafePath(s.baseDir, destination) {
+		log.Printf("PATH NOT ALLOWED: path is outside of allowed base directory")
+		return mcp.NewToolResultText("access denied: path is outside of allowed base directory"), nil
+	}
+
+	msg, err := copyFile(path, destination)
+	if err != nil {
+		log.Printf("ERROR: %v\n", err)
+		return mcp.NewToolResultErrorFromErr("", err), err
+	}
+	log.Printf("Returning files info from file at: %v\n", path)
+
+	return mcp.NewToolResultText(msg), nil
+}
+
 func handlersMiddleware(name string, fn server.ToolHandlerFunc) server.ToolHandlerFunc {
 	return func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		log.Printf("'%s' called with params: %v", name, request.Params.Arguments)
