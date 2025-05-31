@@ -1,13 +1,16 @@
 package main
 
 import (
+	"flag"
+	"fmt"
 	"log"
+	"os"
 
 	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/mark3labs/mcp-go/server"
 )
 
-func fileSystemMCP() *server.MCPServer {
+func fileSystemMCP(dir string) *server.MCPServer {
 
 	mcpServer := server.NewMCPServer(
 		"fs-mcp-server",
@@ -16,7 +19,7 @@ func fileSystemMCP() *server.MCPServer {
 		server.WithLogging(),
 	)
 
-	h := &handler{baseDir: "/home/lealre/GitHub/ai-zero"}
+	h := &handler{baseDir: dir}
 
 	listEntriesTool := mcp.NewTool("listEntries",
 		mcp.WithDescription("List entries at a given path"),
@@ -108,12 +111,34 @@ func fileSystemMCP() *server.MCPServer {
 }
 
 func main() {
-	mcpServer := fileSystemMCP()
+	var port int
+	var dir string
 
-	sseServer := server.NewSSEServer(mcpServer, server.WithBaseURL("http://localhost:8080"))
-	log.Printf("SSE server listening on :8080")
-	if err := sseServer.Start(":8080"); err != nil {
-		log.Fatalf("Server error: %v", err)
+	flag.IntVar(&port, "port", 8080, "Port to listen on (optional)")
+	flag.StringVar(&dir, "dir", "", "Directory to serve")
+
+	flag.Parse()
+
+	if dir == "" {
+		log.Println("Error: --dir must be provided.")
+		flag.Usage()
+		os.Exit(1)
 	}
 
+	_, err, exists := assertPath(dir)
+	if err != nil {
+		log.Fatalf("Error reading the base path: %v", err)
+	}
+	if !exists {
+		log.Fatalf("Base path not found: %v", dir)
+	}
+
+	mcpServer := fileSystemMCP(dir)
+
+	addr := fmt.Sprintf(":%d", port)
+	sseServer := server.NewSSEServer(mcpServer, server.WithBaseURL("http://localhost"+addr))
+	log.Printf("SSE server listening on %s", addr)
+	if err := sseServer.Start(addr); err != nil {
+		log.Fatalf("Server error: %v", err)
+	}
 }
