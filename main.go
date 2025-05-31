@@ -67,6 +67,17 @@ func fileSystemMCP() *server.MCPServer {
 			mcp.Description("New name for the file or directory (just the name, not the full path)"),
 		),
 	)
+	copyFileOrDir := mcp.NewTool("copyFileOrDir",
+		mcp.WithDescription("Copies a file or directory to a new location"),
+		mcp.WithString("path",
+			mcp.Required(),
+			mcp.Description("Path to the file or directory to be copied"),
+		),
+		mcp.WithString("destination",
+			mcp.Required(),
+			mcp.Description("Destination path where the file or directory will be copied"),
+		),
+	)
 
 	mcpServer.AddTool(
 		listEntriesTool,
@@ -87,6 +98,10 @@ func fileSystemMCP() *server.MCPServer {
 	mcpServer.AddTool(
 		renamePath,
 		handlersMiddleware("renamePath", h.withSafePath(h.hadlerRenamePath)),
+	)
+	mcpServer.AddTool(
+		copyFileOrDir,
+		handlersMiddleware("copyFileOrDir", h.withSafePath(h.hadlerCopyFileOrDir)),
 	)
 
 	return mcpServer

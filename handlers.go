@@ -28,7 +28,11 @@ func (s *handler) withSafePath(
 func (s *handler) handlerListEntries(
 	ctx context.Context, path string, request mcp.CallToolRequest,
 ) (*mcp.CallToolResult, error) {
-	depth := request.Params.Arguments["depth"].(float64)
+
+	var depth float64 = 3
+	if d, ok := request.Params.Arguments["depth"]; ok && d != nil {
+		depth = d.(float64)
+	}
 
 	entries, err := listEntries(path, depth, "")
 	if err != nil {
@@ -95,7 +99,7 @@ func (s *handler) hadlerRenamePath(
 	return mcp.NewToolResultText(msg), nil
 }
 
-func (s *handler) hadlerCopyFile(
+func (s *handler) hadlerCopyFileOrDir(
 	ctx context.Context, path string, request mcp.CallToolRequest,
 ) (*mcp.CallToolResult, error) {
 	destination := request.Params.Arguments["destination"].(string)
@@ -105,7 +109,7 @@ func (s *handler) hadlerCopyFile(
 		return mcp.NewToolResultText("access denied: path is outside of allowed base directory"), nil
 	}
 
-	msg, err := copyFile(path, destination)
+	msg, err := copyFileOrDir(path, destination)
 	if err != nil {
 		log.Printf("ERROR: %v\n", err)
 		return mcp.NewToolResultErrorFromErr("", err), err

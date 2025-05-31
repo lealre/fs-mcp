@@ -197,7 +197,7 @@ func renamePath(path, newName string) (string, error) {
 	return newPathName, nil
 }
 
-func copyFile(path, destination string) (string, error) {
+func copyFileOrDir(path, dst string) (string, error) {
 	fileInfo, err, exists := assertPath(path)
 	if err != nil {
 		return "", err
@@ -207,9 +207,12 @@ func copyFile(path, destination string) (string, error) {
 	}
 
 	if fileInfo.IsDir() {
-		return "path is a directory, must be a file", nil
+		return copyDir(path, dst)
 	}
+	return copyFile(path, dst)
+}
 
+func copyFile(path, destination string) (string, error) {
 	sourceFile, err := os.Open(path)
 	if err != nil {
 		return "", err
@@ -234,4 +237,38 @@ func copyFile(path, destination string) (string, error) {
 
 	return "File copied to destination", nil
 
+}
+
+func copyDir(path, dst string) (string, error) {
+	pathInfo, err := os.Stat(path)
+	if err != nil {
+		return "", err
+	}
+
+	// Create the destination directory
+	if err := os.MkdirAll(dst, pathInfo.Mode()); err != nil {
+		return "", err
+	}
+
+	entries, err := os.ReadDir(path)
+	if err != nil {
+		return "", err
+	}
+
+	for _, entry := range entries {
+		srcPath := filepath.Join(path, entry.Name())
+		dstPath := filepath.Join(dst, entry.Name())
+
+		if entry.IsDir() {
+			if _, err := copyDir(srcPath, dstPath); err != nil {
+				return "", err
+			}
+		} else {
+			if _, err := copyFile(srcPath, dstPath); err != nil {
+				return "", err
+			}
+		}
+	}
+
+	return "", nil
 }
