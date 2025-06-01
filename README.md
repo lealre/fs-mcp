@@ -1,8 +1,15 @@
-# Filesystem MCP Server in Go
+# Filesystem SSE Server in Go
 
-This repository provides a server implementation of a MCP to offer a suite of tools that allow interaction with the file system, such as listing directory entries, reading and writing files, retrieving file information, renaming, and copying files or directories.
+This repository provides a server implementation to offer a suite of tools for interacting with the file system, such as listing directory entries, reading and writing files, retrieving file information, renaming, and copying files or directories.
 
-The server runs on a local machine and listens for commands, making it a powerful utility for automated scripts or remote file management tasks.
+It specifically runs an SSE server on a local machine.
+
+## Table of Contents
+
+- [Installation](#installation)
+- [Installing Locally by Cloning the Repository](#installing-locally-by-cloning-the-repository)
+- [How to Use](#how-to-use)
+- [Tool Descriptions](#tool-descriptions)
 
 ## Installation
 
@@ -20,7 +27,7 @@ fs-mcp -h
 ```
 
 - The `-dir` flag specifies the base directory that the server will serve. It is required.
-- The `-port` flag specifies the port on which the server will listen. It is optional, and the default is `8080`.
+- The `-port` flag specifies the port on which the server will listen. It is optional, with the default being `8080`.
 
 ### Installing Locally by Cloning the Repository
 
@@ -49,6 +56,67 @@ go build
 ```
 
 - This will run the server, and you can specify options such as `-dir` and `-port` with the command.
+
+## How to Use
+
+Once the installation is complete, you can use the server by running:
+
+```bash
+fs-mcp -dir /your/directory/path
+```
+
+This will start the MCP server at `http://localhost:8080`, restricting the file system operations to be under this specific path.
+
+For now, it only accepts one path to the server.
+
+To change the server port, you can pass it as a flag:
+
+```bash
+fs-mcp -dir /your/directory/path -port 3000
+```
+
+### Example of usage with PydanticAI in Python
+
+- Run the MCP server:
+
+```bash
+fs-mcp -dir /your/directory/path
+```
+
+- Create the Python client (using OpenAI in this case):
+
+```python
+# script.py
+
+import asyncio
+import sys
+from pydantic_ai import Agent
+from pydantic_ai.mcp import MCPServerHTTP
+
+server = MCPServerHTTP('http://localhost:8080/sse')
+agent = Agent('openai:gpt-4o', mcp_servers=[server])
+
+async def main():
+    if len(sys.argv) < 2:
+        print("Usage: python script.py 'your prompt/query here'")
+        sys.exit(1)
+
+    query = sys.argv[1]
+
+    async with agent.run_mcp_servers():
+        result = await agent.run(query)
+
+    print(result.data)
+
+if __name__ == '__main__':
+    asyncio.run(main())
+```
+
+- Then you can run:
+
+```bash
+python script.py "List all the entries for the path in /your/directory/path/somesubpath"
+```
 
 ## Tool Descriptions
 
@@ -81,4 +149,4 @@ This project provides various tools to interact with the file system. Below are 
   - `path` (string, required): Path to the file or directory to be copied.
   - `destination` (string, required): Destination path where the file or directory will be copied.
 
-[mcp-go docs](https://pkg.go.dev/github.com/mark3labs/mcp-go/mcp)
+This project uses the [mcp-go library](https://pkg.go.dev/github.com/mark3labs/mcp-go/mcp) to implement core functionality.
