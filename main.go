@@ -118,9 +118,19 @@ func main() {
 	flag.StringVar(&dir, "dir", "", "Directory to serve")
 
 	flag.Parse()
+	flag.Usage = func() {
+		fmt.Fprintf(flag.CommandLine.Output(), `fs-mcp - A simple filesystem MCP SSE server
+	
+Usage:
+	fs-mcp --dir <directory> [--port <port>]
+
+Options:
+`)
+		flag.PrintDefaults()
+	}
 
 	if dir == "" {
-		log.Println("Error: --dir must be provided.")
+		log.Println("Error: -dir must be provided.")
 		flag.Usage()
 		os.Exit(1)
 	}
