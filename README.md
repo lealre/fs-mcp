@@ -4,6 +4,52 @@ This repository provides a server implementation of a MCP to offer a suite of to
 
 The server runs on a local machine and listens for commands, making it a powerful utility for automated scripts or remote file management tasks.
 
+## Installation
+
+1. Ensure that you have [Go](https://golang.org/doc/install) installed on your system (using Go version 1.24).
+2. Run the following command to install the package using `go install`:
+
+```bash
+go install github.com/lealre/fs-mcp@latest
+```
+
+3. Run the help command:
+
+```bash
+fs-mcp -h
+```
+
+- The `-dir` flag specifies the base directory that the server will serve. It is required.
+- The `-port` flag specifies the port on which the server will listen. It is optional, and the default is `8080`.
+
+### Installing Locally by Cloning the Repository
+
+1. Clone the repository to your local machine:
+
+```bash
+git clone https://github.com/lealre/fs-mcp.git
+```
+
+2. Navigate into the cloned directory:
+
+```bash
+cd fs-mcp
+```
+
+3. Build the project:
+
+```bash
+go build
+```
+
+4. Run the executable:
+
+```bash
+./fs-mcp
+```
+
+- This will run the server, and you can specify options such as `-dir` and `-port` with the command.
+
 ## Tool Descriptions
 
 This project provides various tools to interact with the file system. Below are the descriptions of each tool:
