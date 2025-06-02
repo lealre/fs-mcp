@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"testing"
@@ -157,4 +158,42 @@ func TestAssertPath(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestListEntries(t *testing.T) {
+	tmpDir := t.TempDir()
+
+	os.WriteFile(filepath.Join(tmpDir, "file_1.txt"), []byte("test"), 0644)
+	os.WriteFile(filepath.Join(tmpDir, "file_2.txt"), []byte("test"), 0644)
+	subDir := filepath.Join(tmpDir, "subpath")
+	os.MkdirAll(subDir, 0755)
+	os.WriteFile(filepath.Join(subDir, "sub_file_1.txt"), []byte("test"), 0644)
+	os.WriteFile(filepath.Join(subDir, "sub_file_2.txt"), []byte("test"), 0644)
+
+	// Expected return
+	expected := fmt.Sprintf(
+		"%s- file_1.txt (file)\n"+
+			"%s- file_2.txt (file)\n"+
+			"%s- subpath (directory)\n"+
+			"%s  - sub_file_1.txt (file)\n"+
+			"%s  - sub_file_2.txt (file)\n",
+		tmpDir,
+		tmpDir,
+		tmpDir,
+		tmpDir,
+		tmpDir,
+	)
+
+	t.Run("esisting entries and subentries", func(t *testing.T) {
+		entries, err := listEntries(tmpDir, 3, tmpDir)
+
+		if err != nil {
+			t.Errorf("got unexpected error %v", err)
+		}
+
+		if entries != expected {
+			t.Errorf("Expected:\n %v\nGot:\n%q", expected, entries)
+		}
+
+	})
 }
