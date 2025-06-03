@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -171,7 +172,7 @@ func TestListEntries(t *testing.T) {
 	os.WriteFile(filepath.Join(subDir, "sub_file_2.txt"), []byte("test"), 0644)
 
 	// Expected return
-	expected := fmt.Sprintf(
+	expectedSuccess := fmt.Sprintf(
 		"%s- file_1.txt (file)\n"+
 			"%s- file_2.txt (file)\n"+
 			"%s- subpath (directory)\n"+
@@ -184,16 +185,49 @@ func TestListEntries(t *testing.T) {
 		tmpDir,
 	)
 
-	t.Run("esisting entries and subentries", func(t *testing.T) {
-		entries, err := listEntries(tmpDir, 3, tmpDir)
+	tests := []struct {
+		name       string
+		path       string
+		pathPrefix string
+		expect     string
+		err        error
+	}{
+		{
+			name:       "esisting entries and subentries",
+			path:       tmpDir,
+			pathPrefix: tmpDir,
+			expect:     expectedSuccess,
+			err:        errors.New(""),
+		},
+		{
+			name:       "passing a file path",
+			path:       "/not/exists/dir",
+			pathPrefix: "/not/exists",
+			expect:     "path not found at /not/exists/dir",
+			err:        errors.New(""),
+		},
+		{
+			name:       "directorie do not exists",
+			path:       filepath.Join(tmpDir, "file_1.txt"),
+			pathPrefix: tmpDir,
+			expect:     "path is not a directory",
+			err:        errors.New(""),
+		},
+	}
 
-		if err != nil {
-			t.Errorf("got unexpected error %v", err)
-		}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			entries, err := listEntries(tt.path, 3, tt.pathPrefix)
 
-		if entries != expected {
-			t.Errorf("Expected:\n %v\nGot:\n%q", expected, entries)
-		}
+			if err != nil {
+				if tt.err != errors.New("") && err != tt.err {
+					t.Errorf("got unexpected error %v", err)
+				}
+			}
 
-	})
+			if entries != tt.expect {
+				t.Errorf("Expected:\n %v\nGot:\n%q", tt.expect, entries)
+			}
+		})
+	}
 }
