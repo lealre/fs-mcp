@@ -222,3 +222,46 @@ func TestListEntries(t *testing.T) {
 		})
 	}
 }
+
+func TestReadFile(t *testing.T) {
+	tmpDir := t.TempDir()
+
+	os.WriteFile(filepath.Join(tmpDir, "file_1.txt"), []byte("test"), 0644)
+	subDir := filepath.Join(tmpDir, "subpath")
+	os.MkdirAll(subDir, 0755)
+
+	tests := []struct {
+		name   string
+		path   string
+		expect string
+	}{
+		{
+			name:   "read file sucessfully",
+			path:   filepath.Join(tmpDir, "file_1.txt"),
+			expect: "test",
+		},
+		{
+			name:   "read file sucessfully",
+			path:   subDir,
+			expect: "path is a directory, must be a file",
+		},
+		{
+			name:   "read file sucessfully",
+			path:   "/not/exists/file.txt",
+			expect: "path not found at /not/exists/file.txt",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			content, err := readFile(tt.path)
+			if err != nil {
+				t.Errorf("unexpected error: %v", err)
+			}
+
+			if content != tt.expect {
+				t.Errorf("Got %s, expected: %s", content, tt.expect)
+			}
+		})
+	}
+}
