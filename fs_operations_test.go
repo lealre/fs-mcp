@@ -173,51 +173,42 @@ func TestListEntries(t *testing.T) {
 
 	// Expected return
 	expectedSuccess := fmt.Sprintf(
-		"%s- file_1.txt (file)\n"+
-			"%s- file_2.txt (file)\n"+
-			"%s- subpath (directory)\n"+
-			"%s  - sub_file_1.txt (file)\n"+
-			"%s  - sub_file_2.txt (file)\n",
-		tmpDir,
-		tmpDir,
-		tmpDir,
-		tmpDir,
-		tmpDir,
+		"- file_1.txt (file)\n" +
+			"- file_2.txt (file)\n" +
+			"- subpath (directory)\n" +
+			"  - sub_file_1.txt (file)\n" +
+			"  - sub_file_2.txt (file)\n",
 	)
 
 	tests := []struct {
-		name       string
-		path       string
-		pathPrefix string
-		expect     string
-		err        error
+		name   string
+		path   string
+		expect string
+		err    error
 	}{
 		{
-			name:       "esisting entries and subentries",
-			path:       tmpDir,
-			pathPrefix: tmpDir,
-			expect:     expectedSuccess,
-			err:        errors.New(""),
+			name:   "esisting entries and subentries",
+			path:   tmpDir,
+			expect: expectedSuccess,
+			err:    errors.New(""),
 		},
 		{
-			name:       "passing a file path",
-			path:       "/not/exists/dir",
-			pathPrefix: "/not/exists",
-			expect:     "path not found at /not/exists/dir",
-			err:        errors.New(""),
+			name:   "passing a file path",
+			path:   "/not/exists/dir",
+			expect: "path not found at /not/exists/dir",
+			err:    errors.New(""),
 		},
 		{
-			name:       "directorie do not exists",
-			path:       filepath.Join(tmpDir, "file_1.txt"),
-			pathPrefix: tmpDir,
-			expect:     "path is not a directory",
-			err:        errors.New(""),
+			name:   "directorie do not exists",
+			path:   filepath.Join(tmpDir, "file_1.txt"),
+			expect: "path is not a directory",
+			err:    errors.New(""),
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			entries, err := listEntries(tt.path, 3, tt.pathPrefix)
+			entries, err := listEntries(tt.path, 3, "")
 
 			if err != nil {
 				if tt.err != errors.New("") && err != tt.err {
