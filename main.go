@@ -130,7 +130,6 @@ Options:
 	}
 
 	if dir == "" {
-		log.Println("Error: -dir must be provided.")
 		flag.Usage()
 		os.Exit(1)
 	}
