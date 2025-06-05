@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -261,6 +262,65 @@ func TestReadFile(t *testing.T) {
 
 			if content != tt.expect {
 				t.Errorf("Got %s, expected: %s", content, tt.expect)
+			}
+		})
+	}
+}
+
+func TestGetFileInfo(t *testing.T) {
+	tmpDir := t.TempDir()
+
+	filePath := filepath.Join(tmpDir, "file_1.txt")
+	if err := os.WriteFile(filePath, []byte("test"), 0644); err != nil {
+		t.Fatalf("Failed to write test file: %v", err)
+	}
+
+	subDir := filepath.Join(tmpDir, "subpath")
+	if err := os.MkdirAll(subDir, 0755); err != nil {
+		t.Fatalf("Failed to create test directory: %v", err)
+	}
+
+	tests := []struct {
+		name     string
+		path     string
+		expect   string
+		contains bool
+	}{
+		{
+			name:     "read file successfully",
+			path:     filePath,
+			expect:   "File: " + filePath,
+			contains: true,
+		},
+		{
+			name:     "path is directory",
+			path:     subDir,
+			expect:   "path is a directory, must be a file",
+			contains: false,
+		},
+		{
+			name:     "path does not exist",
+			path:     "/not/exists/file.txt",
+			expect:   "path not found at /not/exists/file.txt",
+			contains: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			content, err := getFileInfo(tt.path)
+			if err != nil {
+				t.Errorf("unexpected error: %v", err)
+			}
+
+			if tt.contains {
+				if !strings.Contains(content, tt.expect) {
+					t.Errorf("Output does not contain expected substring.\nGot:\n%s\nExpected to contain:\n%s", content, tt.expect)
+				}
+			} else {
+				if content != tt.expect {
+					t.Errorf("Got:\n%s\nExpected:\n%s", content, tt.expect)
+				}
 			}
 		})
 	}
