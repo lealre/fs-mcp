@@ -325,3 +325,65 @@ func TestGetFileInfo(t *testing.T) {
 		})
 	}
 }
+func TestRenameFilaAndDir(t *testing.T) {
+	tmpDir := t.TempDir()
+
+	filePathOne := filepath.Join(tmpDir, "file_1.txt")
+	if err := os.WriteFile(filePathOne, []byte("test"), 0644); err != nil {
+		t.Fatalf("Failed to write test file: %v", err)
+	}
+	filePathTwo := filepath.Join(tmpDir, "file_2.txt")
+	if err := os.WriteFile(filePathTwo, []byte("test"), 0644); err != nil {
+		t.Fatalf("Failed to write test file: %v", err)
+	}
+
+	subDir := filepath.Join(tmpDir, "subpath")
+	if err := os.MkdirAll(subDir, 0755); err != nil {
+		t.Fatalf("Failed to create test directory: %v", err)
+	}
+
+	tests := []struct {
+		name        string
+		path        string
+		newPathName string
+		expect      string
+	}{
+		{
+			name:        "rename a file",
+			path:        filePathOne,
+			newPathName: "updated_file_name.txt",
+			expect:      filepath.Join(tmpDir, "updated_file_name.txt"),
+		},
+		{
+			name:        "rename a directory",
+			path:        subDir,
+			newPathName: "updated_dir_name",
+			expect:      filepath.Join(tmpDir, "updated_dir_name"),
+		},
+		{
+			name:        "path does not exist",
+			path:        "/not/exists/file.txt",
+			newPathName: "updated_file_name.txt",
+			expect:      "path not found at /not/exists/file.txt",
+		},
+		{
+			name:        "file already exists",
+			path:        filePathTwo,
+			newPathName: "updated_file_name.txt",
+			expect:      fmt.Sprintf("target path %s already exists", filepath.Join(tmpDir, "updated_file_name.txt")),
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			content, err := renamePath(tt.path, tt.newPathName)
+			if err != nil {
+				t.Errorf("unexpected error: %v", err)
+			}
+
+			if content != tt.expect {
+				t.Errorf("Got:\n%s\nExpected:\n%s", content, tt.expect)
+			}
+		})
+	}
+}
