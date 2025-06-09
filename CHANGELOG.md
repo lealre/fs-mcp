@@ -1,7 +1,16 @@
 
+<a name="v0.1.2"></a>
+## [v0.1.2](https://github.com/lealre/fs-mcp/compare/v0.1.1...v0.1.2) (2025-06-09)
+
+* Add `stdio` as the default transport option ([#1](https://github.com/lealre/fs-mcp/issues/1))
+* Update `README.md` to mention  default transport as `stdio`
+* Add new default transport as `stdio`
+* Add test to `renamePath` function from `fs_operations.go`
+
 <a name="v0.1.1"></a>
 ## [v0.1.1](https://github.com/lealre/fs-mcp/compare/v0.1.0...v0.1.1) (2025-06-05)
 
+* Add `CHANGELOG.md` reflecting `v0.1.1`
 * Update changelog templae to keep it simple for now
 * Add tests to `getFileInfo`
 * Add changelog configurations
