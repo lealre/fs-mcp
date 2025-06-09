@@ -158,6 +158,4 @@ Options:
 			log.Fatalf("Server error: %v", err)
 		}
 	}
-
-	server.ServeStdio(mcpServer)
 }
