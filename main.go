@@ -111,11 +111,13 @@ func fileSystemMCP(dir string) *server.MCPServer {
 }
 
 func main() {
+
 	var port int
 	var dir string
-
+	var transport string
 	flag.IntVar(&port, "port", 8080, "Port to listen on (optional)")
 	flag.StringVar(&dir, "dir", "", "Directory to serve")
+	flag.StringVar(&transport, "t", "stdio", "Transport type (stdio or http)")
 
 	flag.Parse()
 	flag.Usage = func() {
@@ -144,10 +146,16 @@ Options:
 
 	mcpServer := fileSystemMCP(dir)
 
-	addr := fmt.Sprintf(":%d", port)
-	sseServer := server.NewSSEServer(mcpServer, server.WithBaseURL("http://localhost"+addr))
-	log.Printf("SSE server listening on %s", addr)
-	if err := sseServer.Start(addr); err != nil {
-		log.Fatalf("Server error: %v", err)
+	if transport == "http" {
+		addr := fmt.Sprintf(":%d", port)
+		sseServer := server.NewSSEServer(mcpServer, server.WithBaseURL("http://localhost"+addr))
+		log.Printf("SSE server listening on %s", addr)
+		if err := sseServer.Start(addr); err != nil {
+			log.Fatalf("Server error: %v", err)
+		}
+	} else {
+		if err := server.ServeStdio(mcpServer); err != nil {
+			log.Fatalf("Server error: %v", err)
+		}
 	}
 }

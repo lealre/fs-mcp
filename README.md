@@ -7,8 +7,11 @@ It specifically runs an SSE server on a local machine.
 ## Table of Contents
 
 - [Installation](#installation)
-- [Installing Locally by Cloning the Repository](#installing-locally-by-cloning-the-repository)
+  - [Installing Locally by Cloning the Repository](#installing-locally-by-cloning-the-repository)
 - [How to Use](#how-to-use)
+  - [Example of usage with PydanticAI in Python](#example-of-usage-with-pydanticai-in-python)
+    - [Using SSE server](#using-sse-server)
+    - [Using stdio](#using-stdio)
 - [Tool Descriptions](#tool-descriptions)
 
 ## Installation
@@ -52,17 +55,17 @@ go build
 4. Run the executable:
 
 ```bash
-./fs-mcp
+./fs-mcp -t http -dir /your/directory/path
 ```
 
-- This will run the server, and you can specify options such as `-dir` and `-port` with the command.
+- This will run the server at `http://localhost:8080`.
 
 ## How to Use
 
 Once the installation is complete, you can use the server by running:
 
 ```bash
-fs-mcp -dir /your/directory/path
+fs-mcp -t http -dir /your/directory/path
 ```
 
 This will start the MCP server at `http://localhost:8080`, restricting the file system operations to be under this specific path.
@@ -75,7 +78,11 @@ To change the server port, you can pass it as a flag:
 fs-mcp -dir /your/directory/path -port 3000
 ```
 
+To run it using stdio, just omit the flag `-t`.
+
 ### Example of usage with PydanticAI in Python
+
+#### Using SSE server
 
 - Run the MCP server:
 
@@ -94,6 +101,47 @@ from pydantic_ai import Agent
 from pydantic_ai.mcp import MCPServerHTTP
 
 server = MCPServerHTTP('http://localhost:8080/sse')
+agent = Agent('openai:gpt-4o', mcp_servers=[server])
+
+async def main():
+    if len(sys.argv) < 2:
+        print("Usage: python script.py 'your prompt/query here'")
+        sys.exit(1)
+
+    query = sys.argv[1]
+
+    async with agent.run_mcp_servers():
+        result = await agent.run(query)
+
+    print(result.data)
+
+if __name__ == '__main__':
+    asyncio.run(main())
+```
+
+- Then you can run:
+
+```bash
+python script.py "List all the entries for the path in /your/directory/path/somesubpath"
+```
+
+#### Using stdio
+
+- Create the Python client (using OpenAI in this case):
+
+```python
+# script.py
+
+import asyncio
+import sys
+from pydantic_ai import Agent
+from pydantic_ai.mcp import MCPServerStdio
+
+base_path = "/your/directory/path"
+server = MCPServerStdio(
+    'fs-mcp',
+    args=['-dir', base_path]
+)
 agent = Agent('openai:gpt-4o', mcp_servers=[server])
 
 async def main():
