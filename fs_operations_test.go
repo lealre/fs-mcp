@@ -434,46 +434,54 @@ func TestRenameFilaAndDir(t *testing.T) {
 	}
 
 	tests := []struct {
-		name        string
-		path        string
-		newPathName string
-		expect      string
+		name          string
+		path          string
+		newPathName   string
+		expectMessage string
+		expectContent string
 	}{
 		{
-			name:        "rename a file",
-			path:        filePathOne,
-			newPathName: "updated_file_name.txt",
-			expect:      filepath.Join(tmpDir, "updated_file_name.txt"),
+			name:          "rename a file",
+			path:          filePathOne,
+			newPathName:   "updated_file_name.txt",
+			expectMessage: "",
+			expectContent: filepath.Join(tmpDir, "updated_file_name.txt"),
 		},
 		{
-			name:        "rename a directory",
-			path:        subDir,
-			newPathName: "updated_dir_name",
-			expect:      filepath.Join(tmpDir, "updated_dir_name"),
+			name:          "rename a directory",
+			path:          subDir,
+			newPathName:   "updated_dir_name",
+			expectMessage: "",
+			expectContent: filepath.Join(tmpDir, "updated_dir_name"),
 		},
 		{
-			name:        "path does not exist",
-			path:        "/not/exists/file.txt",
-			newPathName: "updated_file_name.txt",
-			expect:      "path not found at /not/exists/file.txt",
+			name:          "path does not exist",
+			path:          "/not/exists/file.txt",
+			newPathName:   "updated_file_name.txt",
+			expectMessage: "path not found at /not/exists/file.txt",
+			expectContent: "",
 		},
 		{
-			name:        "file already exists",
-			path:        filePathTwo,
-			newPathName: "updated_file_name.txt",
-			expect:      fmt.Sprintf("target path %s already exists", filepath.Join(tmpDir, "updated_file_name.txt")),
+			name:          "file already exists",
+			path:          filePathTwo,
+			newPathName:   "updated_file_name.txt",
+			expectMessage: fmt.Sprintf("target path %s already exists", filepath.Join(tmpDir, "updated_file_name.txt")),
+			expectContent: "",
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			content, err := renamePath(tt.path, tt.newPathName)
-			if err != nil {
-				t.Errorf("unexpected error: %v", err)
+			operationResult := renamePath(tt.path, tt.newPathName)
+			if operationResult.Error != nil {
+				t.Errorf("unexpected error: %v", operationResult.Error)
 			}
 
-			if content != tt.expect {
-				t.Errorf("Got:\n%s\nExpected:\n%s", content, tt.expect)
+			if operationResult.Message != tt.expectMessage {
+				t.Errorf("Got %s, expected: %s", operationResult.Message, tt.expectMessage)
+			}
+			if operationResult.Content != tt.expectContent {
+				t.Errorf("Got %s, expected: %s", operationResult.Content, tt.expectContent)
 			}
 		})
 	}

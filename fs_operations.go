@@ -180,14 +180,14 @@ func getMimeType(path string) (string, error) {
 	return mimeType, nil
 }
 
-func renamePath(path, newName string) (string, error) {
+func renamePath(path, newName string) OperationResult {
 	_, err, exists := assertPath(path)
 	if err != nil {
-		return "", err
+		return OperationResult{Error: err}
 	}
 
 	if !exists {
-		return fmt.Sprintf("path not found at %s", path), nil
+		return OperationResult{Message: fmt.Sprintf("path not found at %s", path)}
 	}
 
 	fileDir := filepath.Dir(path)
@@ -195,12 +195,15 @@ func renamePath(path, newName string) (string, error) {
 
 	// Check if new name already exists
 	if _, err := os.Stat(newPathName); err == nil {
-		return fmt.Sprintf("target path %s already exists", newPathName), nil
+		return OperationResult{Message: fmt.Sprintf("target path %s already exists", newPathName)}
 	}
 
-	os.Rename(path, newPathName)
+	err = os.Rename(path, newPathName)
+	if err != nil {
+		return OperationResult{Error: err}
+	}
 
-	return newPathName, nil
+	return OperationResult{Content: newPathName}
 }
 
 func copyFileOrDir(path, dst string) (string, error) {

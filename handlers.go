@@ -112,14 +112,20 @@ func (s *handler) hadlerRenamePath(
 ) (*mcp.CallToolResult, error) {
 	newPathFinalName := request.Params.Arguments["newPathFinalName"].(string)
 
-	msg, err := renamePath(path, newPathFinalName)
-	if err != nil {
-		log.Printf("ERROR: %v\n", err)
-		return mcp.NewToolResultErrorFromErr("", err), err
+	operationResult := renamePath(path, newPathFinalName)
+	if operationResult.Error != nil {
+		log.Printf("ERROR: %v\n", operationResult.Error)
+		return mcp.NewToolResultErrorFromErr("", operationResult.Error), operationResult.Error
 	}
+
+	if operationResult.Message != "" {
+		log.Printf("WARNING: %v\n", operationResult.Message)
+		return mcp.NewToolResultText(operationResult.Message), nil
+	}
+
 	log.Printf("Returning files info from file at: %v\n", path)
 
-	return mcp.NewToolResultText(msg), nil
+	return mcp.NewToolResultText(operationResult.Content), nil
 }
 
 func (s *handler) hadlerCopyFileOrDir(
