@@ -1,8 +1,8 @@
-# Filesystem SSE Server in Go
+# Filesystem MCP
 
-This repository provides a server implementation to offer a suite of tools for interacting with the file system, such as listing directory entries, reading and writing files, retrieving file information, renaming, and copying files or directories.
+This repository provides an MCP implementation to offer a suite of tools for interacting with the file system, such as listing directory entries, reading and writing files, retrieving file information, and renaming and copying files or directories.
 
-It specifically runs an SSE server on a local machine.
+It allows users to run using stdio or SSE server on a local machine.
 
 ## Table of Contents
 
@@ -31,6 +31,7 @@ fs-mcp -h
 
 - The `-dir` flag specifies the base directory that the server will serve. It is required.
 - The `-port` flag specifies the port on which the server will listen. It is optional, with the default being `8080`.
+- The `-t` flag specifies the transport type. It can be either `stdio` or `http` (default is `stdio`).
 
 ### Installing Locally by Cloning the Repository
 
@@ -98,9 +99,9 @@ fs-mcp -dir /your/directory/path
 import asyncio
 import sys
 from pydantic_ai import Agent
-from pydantic_ai.mcp import MCPServerHTTP
+from pydantic_ai.mcp import MCPServerSSE
 
-server = MCPServerHTTP('http://localhost:8080/sse')
+server = MCPServerSSE('http://localhost:8080/sse')
 agent = Agent('openai:gpt-4o', mcp_servers=[server])
 
 async def main():
@@ -113,7 +114,7 @@ async def main():
     async with agent.run_mcp_servers():
         result = await agent.run(query)
 
-    print(result.data)
+    print(result.output)
 
 if __name__ == '__main__':
     asyncio.run(main())
@@ -154,7 +155,7 @@ async def main():
     async with agent.run_mcp_servers():
         result = await agent.run(query)
 
-    print(result.data)
+    print(result.output)
 
 if __name__ == '__main__':
     asyncio.run(main())
