@@ -1,4 +1,13 @@
 
+<a name="v0.1.3"></a>
+## [v0.1.3](https://github.com/lealre/fs-mcp/compare/v0.1.2...v0.1.3) (2025-06-14)
+
+* Add a new struct as the return type for file system operations ([#2](https://github.com/lealre/fs-mcp/issues/2))
+* Update help text to include new transport flag (-t)
+* Update description in `README.md` to include new transport type flag
+* Add some tests to `copyFileOrDir`
+* Update ``CHANGELOG.md`
+
 <a name="v0.1.2"></a>
 ## [v0.1.2](https://github.com/lealre/fs-mcp/compare/v0.1.1...v0.1.2) (2025-06-09)
 
