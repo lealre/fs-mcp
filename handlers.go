@@ -10,6 +10,8 @@ import (
 	"github.com/mark3labs/mcp-go/server"
 )
 
+type handlerFunc func(ctx context.Context, path string, request mcp.CallToolRequest) (*mcp.CallToolResult, error)
+
 type handlerCfg struct {
 	baseDir       string
 	dockerMode    bool
@@ -22,7 +24,7 @@ type VolumeMapping struct {
 }
 
 func (h *handlerCfg) withSafePath(
-	handler func(ctx context.Context, path string, request mcp.CallToolRequest) (*mcp.CallToolResult, error),
+	handler handlerFunc,
 ) server.ToolHandlerFunc {
 	return func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		path := request.Params.Arguments["path"].(string)
@@ -35,7 +37,7 @@ func (h *handlerCfg) withSafePath(
 }
 
 func (h *handlerCfg) withDockerPath(
-	handler func(ctx context.Context, path string, request mcp.CallToolRequest) (*mcp.CallToolResult, error),
+	handler handlerFunc,
 ) server.ToolHandlerFunc {
 	return func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		hostPath := request.Params.Arguments["path"].(string)
