@@ -138,14 +138,19 @@ func (s *handler) hadlerCopyFileOrDir(
 		return mcp.NewToolResultText("access denied: path is outside of allowed base directory"), nil
 	}
 
-	msg, err := copyFileOrDir(path, destination)
-	if err != nil {
-		log.Printf("ERROR: %v\n", err)
-		return mcp.NewToolResultErrorFromErr("", err), err
+	operationResult := copyFileOrDir(path, destination)
+	if operationResult.Error != nil {
+		log.Printf("ERROR: %v\n", operationResult.Error)
+		return mcp.NewToolResultErrorFromErr("", operationResult.Error), operationResult.Error
+	}
+
+	if operationResult.Message != "" {
+		log.Printf("WARNING: %v\n", operationResult.Message)
+		return mcp.NewToolResultText(operationResult.Message), nil
 	}
 	log.Printf("Returning files info from file at: %v\n", path)
 
-	return mcp.NewToolResultText(msg), nil
+	return mcp.NewToolResultText(operationResult.Content), nil
 }
 
 func handlersMiddleware(name string, fn server.ToolHandlerFunc) server.ToolHandlerFunc {

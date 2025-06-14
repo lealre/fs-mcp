@@ -206,13 +206,13 @@ func renamePath(path, newName string) OperationResult {
 	return OperationResult{Content: newPathName}
 }
 
-func copyFileOrDir(path, dst string) (string, error) {
+func copyFileOrDir(path, dst string) OperationResult {
 	fileInfo, err, exists := assertPath(path)
 	if err != nil {
-		return "", err
+		return OperationResult{Error: err}
 	}
 	if !exists {
-		return fmt.Sprintf("path not found at %s", path), nil
+		return OperationResult{Message: fmt.Sprintf("path not found at %s", path)}
 	}
 
 	if fileInfo.IsDir() {
@@ -221,47 +221,46 @@ func copyFileOrDir(path, dst string) (string, error) {
 	return copyFile(path, dst)
 }
 
-func copyFile(path, destination string) (string, error) {
+func copyFile(path, destination string) OperationResult {
 	sourceFile, err := os.Open(path)
 	if err != nil {
-		return "", err
+		return OperationResult{Error: err}
 	}
 	defer sourceFile.Close()
 
 	destFile, err := os.Create(destination)
 	if err != nil {
-		return "", err
+		return OperationResult{Error: err}
 	}
 	defer destFile.Close()
 
 	_, err = io.Copy(destFile, sourceFile)
 	if err != nil {
-		return "", err
+		return OperationResult{Error: err}
 	}
 
 	err = destFile.Sync()
 	if err != nil {
-		return "", nil
+		return OperationResult{Error: err}
 	}
 
-	return "File copied to destination", nil
-
+	return OperationResult{Content: "File copied to destination"}
 }
 
-func copyDir(path, dst string) (string, error) {
+func copyDir(path, dst string) OperationResult {
 	pathInfo, err := os.Stat(path)
 	if err != nil {
-		return "", err
+		return OperationResult{Error: err}
 	}
 
 	// Create the destination directory
 	if err := os.MkdirAll(dst, pathInfo.Mode()); err != nil {
-		return "", err
+		return OperationResult{Error: err}
 	}
 
 	entries, err := os.ReadDir(path)
 	if err != nil {
-		return "", err
+		return OperationResult{Error: err}
 	}
 
 	for _, entry := range entries {
@@ -269,15 +268,15 @@ func copyDir(path, dst string) (string, error) {
 		dstPath := filepath.Join(dst, entry.Name())
 
 		if entry.IsDir() {
-			if _, err := copyDir(srcPath, dstPath); err != nil {
-				return "", err
+			if operationResult := copyDir(srcPath, dstPath); operationResult.Error != nil {
+				return operationResult
 			}
 		} else {
-			if _, err := copyFile(srcPath, dstPath); err != nil {
-				return "", err
+			if operationResult := copyFile(srcPath, dstPath); operationResult.Error != nil {
+				return operationResult
 			}
 		}
 	}
 
-	return "", nil
+	return OperationResult{Error: err}
 }

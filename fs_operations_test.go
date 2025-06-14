@@ -506,40 +506,47 @@ func TestCopyFileOrDir(t *testing.T) {
 	copyDestinationDirPath := filepath.Join(tmpDir, "folder_copy")
 
 	tests := []struct {
-		name        string
-		source      string
-		destination string
-		expect      string
+		name          string
+		source        string
+		destination   string
+		expectMessage string
+		expectContent string
 	}{
 		{
-			name:        "copy file",
-			source:      filePath,
-			destination: destinationFilePath,
-			expect:      "File copied to destination",
+			name:          "copy file",
+			source:        filePath,
+			destination:   destinationFilePath,
+			expectMessage: "",
+			expectContent: "File copied to destination",
 		},
 		{
-			name:        "copy directory",
-			source:      folderPath,
-			destination: copyDestinationDirPath,
-			expect:      "",
+			name:          "copy directory",
+			source:        folderPath,
+			destination:   copyDestinationDirPath,
+			expectMessage: "",
+			expectContent: "",
 		},
 		{
-			name:        "copy non-existent file",
-			source:      filepath.Join(tmpDir, "nonexistent.txt"),
-			destination: filepath.Join(tmpDir, "nonexistent_copy.txt"),
-			expect:      "path not found at " + filepath.Join(tmpDir, "nonexistent.txt"),
+			name:          "copy non-existent file",
+			source:        filepath.Join(tmpDir, "nonexistent.txt"),
+			destination:   filepath.Join(tmpDir, "nonexistent_copy.txt"),
+			expectMessage: "path not found at " + filepath.Join(tmpDir, "nonexistent.txt"),
+			expectContent: "",
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result, err := copyFileOrDir(tt.source, tt.destination)
-			if err != nil {
-				t.Errorf("unexpected error: %v", err)
+			operationResult := copyFileOrDir(tt.source, tt.destination)
+			if operationResult.Error != nil {
+				t.Errorf("unexpected error: %v", operationResult.Error)
 			}
 
-			if result != tt.expect {
-				t.Errorf("Got: %v, Expected: %v", result, tt.expect)
+			if operationResult.Message != tt.expectMessage {
+				t.Errorf("Got %s, expected: %s", operationResult.Message, tt.expectMessage)
+			}
+			if operationResult.Content != tt.expectContent {
+				t.Errorf("Got %s, expected: %s", operationResult.Content, tt.expectContent)
 			}
 		})
 	}
