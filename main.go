@@ -145,7 +145,6 @@ func main() {
 	flag.IntVar(&port, "port", 8080, "Port to listen on (optional)")
 	flag.StringVar(&dir, "dir", "", "Directory to serve")
 	flag.StringVar(&transport, "t", "stdio", "Transport type (stdio or http)")
-	flag.BoolVar(&dockerMode, "docker", false, "Enable Docker mode with volume mapping")
 	flag.StringVar(&volumeMapping, "volume", "", "Volume mapping in format 'hostPath:containerPath'")
 
 	flag.Parse()
@@ -160,38 +159,51 @@ Options:
 		flag.PrintDefaults()
 	}
 
-	if dir == "" {
+	dockerMode = os.Getenv("FS_MCP_DOCKER_MODE") == "true"
+
+	// directory resolution
+	finalDir := ""
+	switch {
+	case dockerMode && volumeMapping != "":
+		parts := strings.Split(volumeMapping, ":")
+		if len(parts) != 2 {
+			log.Fatal("Invalid volume format. Use hostPath:containerPath")
+		}
+		finalDir = parts[1]
+	case dockerMode:
+		finalDir = "/baseDir"
+	case dir != "":
+		finalDir = dir
+	default:
+		log.Fatal("\nError: -dir is required")
 		flag.Usage()
-		os.Exit(1)
 	}
 
-	_, err, exists := assertPath(dir)
+	_, err, exists := assertPath(finalDir)
 	if err != nil {
 		log.Fatalf("Error reading the base path: %v", err)
 	}
 	if !exists {
-		log.Fatalf("Base path not found: %v", dir)
+		log.Fatalf("Base path not found: %v", finalDir)
 	}
 
 	if dockerMode && volumeMapping == "" {
 		log.Println("Warning: Docker mode is enabled but no volume mapping is specified")
 	}
 
-	// Create the config
-	handlerCfg := &handlerCfg{baseDir: dir, dockerMode: dockerMode}
-	if dockerMode && volumeMapping != "" {
-		parts := strings.Split(volumeMapping, ":")
-		if len(parts) == 2 {
-			handlerCfg.volumeMapping = &VolumeMapping{
-				HostPath:      parts[0],
-				ContainerPath: parts[1],
-			}
-		}
-	}
-
 	// Choose the appropriate MCP server based on dockerMode
 	var mcpServer *server.MCPServer
+	handlerCfg := &handlerCfg{baseDir: finalDir, dockerMode: dockerMode}
 	if dockerMode {
+		if dockerMode && volumeMapping != "" {
+			parts := strings.Split(volumeMapping, ":")
+			if len(parts) == 2 {
+				handlerCfg.volumeMapping = &VolumeMapping{
+					HostPath:      parts[0],
+					ContainerPath: parts[1],
+				}
+			}
+		}
 		mcpServer = fileSystemDockerMCP(handlerCfg)
 	} else {
 		mcpServer = fileSystemMCP(handlerCfg)
