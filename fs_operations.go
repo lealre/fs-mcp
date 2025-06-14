@@ -103,27 +103,27 @@ func readFile(path string) OperationResult {
 	return OperationResult{Content: string(content)}
 }
 
-func writeToFile(content, path string) (string, error) {
+func writeToFile(content, path string) OperationResult {
 	dir := filepath.Dir(path)
 
 	if _, err := os.Stat(dir); os.IsNotExist(err) {
 		err = os.MkdirAll(dir, 0750)
 		if err != nil {
-			return "", fmt.Errorf("could not create directory: %s", err)
+			return OperationResult{Error: fmt.Errorf("could not create directory: %s", err)}
 		}
 	}
 
 	info, err := os.Stat(path)
 	if err == nil && info.IsDir() {
-		return "path is a directory, must be a file", nil
+		return OperationResult{Message: "path is a directory, must be a file"}
 	}
 
 	err = os.WriteFile(path, []byte(content), 0600)
 	if err != nil {
-		return "", fmt.Errorf("could not write to file: %s", err)
+		return OperationResult{Error: fmt.Errorf("could not write to file: %s", err)}
 	}
 
-	return "file written successfully", nil
+	return OperationResult{Content: "file written successfully"}
 }
 
 func getFileInfo(path string) (string, error) {

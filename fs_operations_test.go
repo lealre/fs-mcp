@@ -282,6 +282,85 @@ func TestReadFile(t *testing.T) {
 	}
 }
 
+func TestWriteToFile(t *testing.T) {
+	tmpDir := t.TempDir()
+
+	// Setup test file and directory
+	filePath := filepath.Join(tmpDir, "existing.txt")
+	if err := os.WriteFile(filePath, []byte("test"), 0644); err != nil {
+		t.Fatalf("Failed to write test file: %v", err)
+	}
+
+	subDir := filepath.Join(tmpDir, "subdir")
+	if err := os.MkdirAll(subDir, 0755); err != nil {
+		t.Fatalf("Failed to create test directory: %v", err)
+	}
+
+	tests := []struct {
+		name     string
+		content  string
+		path     string
+		expect   string
+		contains bool
+		isError  bool
+	}{
+		{
+			name:     "write to new file",
+			content:  "hello",
+			path:     filepath.Join(tmpDir, "newfile.txt"),
+			expect:   "file written successfully",
+			contains: false,
+			isError:  false,
+		},
+		{
+			name:     "overwrite existing file",
+			content:  "updated",
+			path:     filePath,
+			expect:   "file written successfully",
+			contains: false,
+			isError:  false,
+		},
+		{
+			name:     "path is directory",
+			content:  "should fail",
+			path:     subDir,
+			expect:   "path is a directory, must be a file",
+			contains: false,
+			isError:  false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := writeToFile(tt.content, tt.path)
+
+			if tt.isError {
+				if result.Error == nil {
+					t.Fatal("Expected error but got none")
+				}
+				if !strings.Contains(result.Error.Error(), tt.expect) {
+					t.Errorf("Error does not contain expected message.\nGot: %v\nExpected to contain: %s", result.Error, tt.expect)
+				}
+			} else {
+				if result.Error != nil {
+					t.Fatalf("Unexpected error: %v", result.Error)
+				}
+
+				if tt.contains {
+					if !strings.Contains(result.Content, tt.expect) {
+						t.Errorf("Output does not contain expected substring.\nGot: %s\nExpected to contain: %s", result.Content, tt.expect)
+					}
+				} else {
+					if result.Content != tt.expect && result.Message != tt.expect {
+						t.Errorf("Unexpected result.\nGot Content: %s\nGot Message: %s\nExpected: %s",
+							result.Content, result.Message, tt.expect)
+					}
+				}
+			}
+		})
+	}
+}
+
 func TestGetFileInfo(t *testing.T) {
 	tmpDir := t.TempDir()
 

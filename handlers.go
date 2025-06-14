@@ -72,14 +72,20 @@ func (s *handler) handlerWriteToFile(
 ) (*mcp.CallToolResult, error) {
 	content := request.Params.Arguments["content"].(string)
 
-	msg, err := writeToFile(content, path)
-	if err != nil {
-		log.Printf("ERROR: %v\n", err)
-		return mcp.NewToolResultErrorFromErr("", err), err
+	operationResult := writeToFile(content, path)
+	if operationResult.Error != nil {
+		log.Printf("ERROR: %v\n", operationResult.Error)
+		return mcp.NewToolResultErrorFromErr("", operationResult.Error), operationResult.Error
 	}
+
+	if operationResult.Message != "" {
+		log.Printf("WARNING: %v\n", operationResult.Message)
+		return mcp.NewToolResultText(operationResult.Message), nil
+	}
+
 	log.Printf("File sucessfully written at: %v\n", path)
 
-	return mcp.NewToolResultText(msg), nil
+	return mcp.NewToolResultText(operationResult.Content), nil
 }
 
 func (s *handler) handlerGetFileInfo(
