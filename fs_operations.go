@@ -78,29 +78,29 @@ func listEntries(path string, depth float64, prefix string) OperationResult {
 	return OperationResult{Content: allEntries}
 }
 
-func readFile(path string) (string, error) {
+func readFile(path string) OperationResult {
 	info, err, exists := assertPath(path)
 	if err != nil {
-		return "", err
+		return OperationResult{Error: err}
 	}
 	if !exists {
-		return fmt.Sprintf("path not found at %s", path), nil
+		return OperationResult{Message: fmt.Sprintf("path not found at %s", path)}
 	}
 	if info.IsDir() {
-		return "path is a directory, must be a file", nil
+		return OperationResult{Message: "path is a directory, must be a file"}
 	}
 
 	content, err := os.ReadFile(path) // #nosec G304
 	if err != nil {
-		return "", fmt.Errorf("error reading the file: %s", err)
+		return OperationResult{Error: fmt.Errorf("error reading the file: %s", err)}
 	}
 
 	// Check if content is valid UTF-8 text
 	if !utf8.Valid(content) {
-		return "file is not valid UTF-8 text (likely binary)", nil
+		return OperationResult{Message: "file is not valid UTF-8 text (likely binary)"}
 	}
 
-	return string(content), nil
+	return OperationResult{Content: string(content)}
 }
 
 func writeToFile(content, path string) (string, error) {

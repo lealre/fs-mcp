@@ -51,14 +51,20 @@ func (s *handler) handlerListEntries(
 func (s *handler) handlerReadFile(
 	ctx context.Context, path string, request mcp.CallToolRequest,
 ) (*mcp.CallToolResult, error) {
-	entries, err := readFile(path)
-	if err != nil {
-		log.Printf("ERROR: %v\n", err)
-		return mcp.NewToolResultErrorFromErr("", err), err
+	operationResult := readFile(path)
+	if operationResult.Error != nil {
+		log.Printf("ERROR: %v\n", operationResult.Error)
+		return mcp.NewToolResultErrorFromErr("", operationResult.Error), operationResult.Error
 	}
+
+	if operationResult.Message != "" {
+		log.Printf("WARNING: %v\n", operationResult.Message)
+		return mcp.NewToolResultText(operationResult.Message), nil
+	}
+
 	log.Printf("File sucessfully read from: %v\n", path)
 
-	return mcp.NewToolResultText(entries), nil
+	return mcp.NewToolResultText(operationResult.Content), nil
 }
 
 func (s *handler) handlerWriteToFile(

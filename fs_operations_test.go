@@ -240,36 +240,43 @@ func TestReadFile(t *testing.T) {
 	os.MkdirAll(subDir, 0755)
 
 	tests := []struct {
-		name   string
-		path   string
-		expect string
+		name          string
+		path          string
+		expectMessage string
+		expectContent string
 	}{
 		{
-			name:   "read file sucessfully",
-			path:   filepath.Join(tmpDir, "file_1.txt"),
-			expect: "test",
+			name:          "read file sucessfully",
+			path:          filepath.Join(tmpDir, "file_1.txt"),
+			expectMessage: "",
+			expectContent: "test",
 		},
 		{
-			name:   "read file sucessfully",
-			path:   subDir,
-			expect: "path is a directory, must be a file",
+			name:          "read file sucessfully",
+			path:          subDir,
+			expectMessage: "path is a directory, must be a file",
+			expectContent: "",
 		},
 		{
-			name:   "read file sucessfully",
-			path:   "/not/exists/file.txt",
-			expect: "path not found at /not/exists/file.txt",
+			name:          "read file sucessfully",
+			path:          "/not/exists/file.txt",
+			expectMessage: "path not found at /not/exists/file.txt",
+			expectContent: "",
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			content, err := readFile(tt.path)
-			if err != nil {
-				t.Errorf("unexpected error: %v", err)
+			operationResult := readFile(tt.path)
+			if operationResult.Error != nil {
+				t.Errorf("unexpected error: %v", operationResult.Error)
 			}
 
-			if content != tt.expect {
-				t.Errorf("Got %s, expected: %s", content, tt.expect)
+			if operationResult.Message != tt.expectMessage {
+				t.Errorf("Got %s, expected: %s", operationResult.Message, tt.expectMessage)
+			}
+			if operationResult.Content != tt.expectContent {
+				t.Errorf("Got %s, expected: %s", operationResult.Content, tt.expectContent)
 			}
 		})
 	}
