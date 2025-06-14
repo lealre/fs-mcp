@@ -91,14 +91,20 @@ func (s *handler) handlerWriteToFile(
 func (s *handler) handlerGetFileInfo(
 	ctx context.Context, path string, request mcp.CallToolRequest,
 ) (*mcp.CallToolResult, error) {
-	msg, err := getFileInfo(path)
-	if err != nil {
-		log.Printf("ERROR: %v\n", err)
-		return mcp.NewToolResultErrorFromErr("", err), err
+	operationResult := getFileInfo(path)
+	if operationResult.Error != nil {
+		log.Printf("ERROR: %v\n", operationResult.Error)
+		return mcp.NewToolResultErrorFromErr("", operationResult.Error), operationResult.Error
 	}
+
+	if operationResult.Message != "" {
+		log.Printf("WARNING: %v\n", operationResult.Message)
+		return mcp.NewToolResultText(operationResult.Message), nil
+	}
+
 	log.Printf("Returning files info from file at: %v\n", path)
 
-	return mcp.NewToolResultText(msg), nil
+	return mcp.NewToolResultText(operationResult.Content), nil
 }
 
 func (s *handler) hadlerRenamePath(

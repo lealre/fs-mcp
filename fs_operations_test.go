@@ -375,46 +375,43 @@ func TestGetFileInfo(t *testing.T) {
 	}
 
 	tests := []struct {
-		name     string
-		path     string
-		expect   string
-		contains bool
+		name          string
+		path          string
+		expectMessage string
+		expectContent string
 	}{
 		{
-			name:     "read file successfully",
-			path:     filePath,
-			expect:   "File: " + filePath,
-			contains: true,
+			name:          "read file successfully",
+			path:          filePath,
+			expectMessage: "",
+			expectContent: "File: " + filePath,
 		},
 		{
-			name:     "path is directory",
-			path:     subDir,
-			expect:   "path is a directory, must be a file",
-			contains: false,
+			name:          "path is directory",
+			path:          subDir,
+			expectMessage: "path is a directory, must be a file",
+			expectContent: "",
 		},
 		{
-			name:     "path does not exist",
-			path:     "/not/exists/file.txt",
-			expect:   "path not found at /not/exists/file.txt",
-			contains: false,
+			name:          "path does not exist",
+			path:          "/not/exists/file.txt",
+			expectMessage: "path not found at /not/exists/file.txt",
+			expectContent: "",
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			content, err := getFileInfo(tt.path)
-			if err != nil {
-				t.Errorf("unexpected error: %v", err)
+			operationResult := getFileInfo(tt.path)
+			if operationResult.Error != nil {
+				t.Errorf("unexpected error: %v", operationResult.Error)
 			}
 
-			if tt.contains {
-				if !strings.Contains(content, tt.expect) {
-					t.Errorf("Output does not contain expected substring.\nGot:\n%s\nExpected to contain:\n%s", content, tt.expect)
-				}
-			} else {
-				if content != tt.expect {
-					t.Errorf("Got:\n%s\nExpected:\n%s", content, tt.expect)
-				}
+			if operationResult.Message != tt.expectMessage {
+				t.Errorf("Got %s, expected: %s", operationResult.Message, tt.expectMessage)
+			}
+			if !strings.Contains(operationResult.Content, tt.expectContent) {
+				t.Errorf("Got %s, expected: %s", operationResult.Content, tt.expectContent)
 			}
 		})
 	}

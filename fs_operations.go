@@ -126,21 +126,21 @@ func writeToFile(content, path string) OperationResult {
 	return OperationResult{Content: "file written successfully"}
 }
 
-func getFileInfo(path string) (string, error) {
+func getFileInfo(path string) OperationResult {
 	info, err, exists := assertPath(path)
 	if err != nil {
-		return "", err
+		return OperationResult{Error: err}
 	}
 	if !exists {
-		return fmt.Sprintf("path not found at %s", path), nil
+		return OperationResult{Message: fmt.Sprintf("path not found at %s", path)}
 	}
 	if info.IsDir() {
-		return "path is a directory, must be a file", nil
+		return OperationResult{Message: "path is a directory, must be a file"}
 	}
 
 	mimetype, err := getMimeType(path)
 	if err != nil {
-		return "", err
+		return OperationResult{Error: err}
 	}
 
 	perms := info.Mode().String()
@@ -159,7 +159,7 @@ func getFileInfo(path string) (string, error) {
 		mimetype,
 	)
 
-	return fileInfo, nil
+	return OperationResult{Content: fileInfo}
 }
 
 func getMimeType(path string) (string, error) {
