@@ -11,6 +11,12 @@ import (
 	"unicode/utf8"
 )
 
+type OperationResult struct {
+	Content string
+	Message string
+	Error   error
+}
+
 // isSafePath checks if the given path is within the base directory and does not contain directory traversal
 func isSafePath(base, target string) bool {
 	absBase, err := filepath.Abs(base)
@@ -36,21 +42,21 @@ func assertPath(path string) (os.FileInfo, error, bool) {
 	return fileInfo, nil, true
 }
 
-func listEntries(path string, depth float64, prefix string) (string, error) {
+func listEntries(path string, depth float64, prefix string) OperationResult {
 	info, err, exists := assertPath(path)
 	if err != nil {
-		return "", err
+		return OperationResult{Error: err}
 	}
 	if !exists {
-		return fmt.Sprintf("path not found at %s", path), nil
+		return OperationResult{Message: fmt.Sprintf("path not found at %s", path)}
 	}
 	if !info.IsDir() {
-		return "path is not a directory", nil
+		return OperationResult{Message: "path is not a directory"}
 	}
 
 	entries, err := os.ReadDir(path)
 	if err != nil {
-		return "", fmt.Errorf("error reading the directory: %s", err)
+		return OperationResult{Error: fmt.Errorf("error reading the directory: %s", err)}
 	}
 
 	allEntries := ""
@@ -62,79 +68,79 @@ func listEntries(path string, depth float64, prefix string) (string, error) {
 		}
 		allEntries += fmt.Sprintf("%s- %s (%s)\n", prefix, entry.Name(), pathType)
 		if entry.IsDir() && depth != 0 {
-			subEntries, err := listEntries(entryPath, depth-1, prefix+"  ")
-			if err != nil {
-				return "", err
+			operationResult := listEntries(entryPath, depth-1, prefix+"  ")
+			if operationResult.Error != nil {
+				return OperationResult{Error: fmt.Errorf("error reading subDirectory: %s", err)}
 			}
-			allEntries += subEntries
+			allEntries += operationResult.Content
 		}
 	}
-	return allEntries, nil
+	return OperationResult{Content: allEntries}
 }
 
-func readFile(path string) (string, error) {
+func readFile(path string) OperationResult {
 	info, err, exists := assertPath(path)
 	if err != nil {
-		return "", err
+		return OperationResult{Error: err}
 	}
 	if !exists {
-		return fmt.Sprintf("path not found at %s", path), nil
+		return OperationResult{Message: fmt.Sprintf("path not found at %s", path)}
 	}
 	if info.IsDir() {
-		return "path is a directory, must be a file", nil
+		return OperationResult{Message: "path is a directory, must be a file"}
 	}
 
 	content, err := os.ReadFile(path) // #nosec G304
 	if err != nil {
-		return "", fmt.Errorf("error reading the file: %s", err)
+		return OperationResult{Error: fmt.Errorf("error reading the file: %s", err)}
 	}
 
 	// Check if content is valid UTF-8 text
 	if !utf8.Valid(content) {
-		return "file is not valid UTF-8 text (likely binary)", nil
+		return OperationResult{Message: "file is not valid UTF-8 text (likely binary)"}
 	}
 
-	return string(content), nil
+	return OperationResult{Content: string(content)}
 }
 
-func writeToFile(content, path string) (string, error) {
+func writeToFile(content, path string) OperationResult {
 	dir := filepath.Dir(path)
 
 	if _, err := os.Stat(dir); os.IsNotExist(err) {
 		err = os.MkdirAll(dir, 0750)
 		if err != nil {
-			return "", fmt.Errorf("could not create directory: %s", err)
+			return OperationResult{Error: fmt.Errorf("could not create directory: %s", err)}
 		}
 	}
 
 	info, err := os.Stat(path)
 	if err == nil && info.IsDir() {
-		return "path is a directory, must be a file", nil
+		return OperationResult{Message: "path is a directory, must be a file"}
 	}
 
 	err = os.WriteFile(path, []byte(content), 0600)
 	if err != nil {
-		return "", fmt.Errorf("could not write to file: %s", err)
+		return OperationResult{Error: fmt.Errorf("could not write to file: %s", err)}
 	}
 
-	return "file written successfully", nil
+	return OperationResult{Content: "file written successfully"}
 }
 
-func getFileInfo(path string) (string, error) {
+func getFileInfo(path string) OperationResult {
 	info, err, exists := assertPath(path)
 	if err != nil {
-		return "", err
+		return OperationResult{Error: err}
 	}
 	if !exists {
-		return fmt.Sprintf("path not found at %s", path), nil
+		return OperationResult{Message: fmt.Sprintf("path not found at %s", path)}
 	}
 	if info.IsDir() {
-		return "path is a directory, must be a file", nil
+		return OperationResult{Message: "path is a directory, must be a file"}
 	}
 
 	mimetype, err := getMimeType(path)
 	if err != nil {
-		return "", err
+		return OperationResult{Error: err}
 	}
 
 	perms := info.Mode().String()
@@ -153,7 +159,7 @@ func getFileInfo(path string) (string, error) {
 		mimetype,
 	)
 
-	return fileInfo, nil
+	return OperationResult{Content: fileInfo}
 }
 
 func getMimeType(path string) (string, error) {
@@ -174,14 +180,14 @@ func getMimeType(path string) (string, error) {
 	return mimeType, nil
 }
 
-func renamePath(path, newName string) (string, error) {
+func renamePath(path, newName string) OperationResult {
 	_, err, exists := assertPath(path)
 	if err != nil {
-		return "", err
+		return OperationResult{Error: err}
 	}
 
 	if !exists {
-		return fmt.Sprintf("path not found at %s", path), nil
+		return OperationResult{Message: fmt.Sprintf("path not found at %s", path)}
 	}
 
 	fileDir := filepath.Dir(path)
@@ -189,21 +195,24 @@ func renamePath(path, newName string) (string, error) {
 
 	// Check if new name already exists
 	if _, err := os.Stat(newPathName); err == nil {
-		return fmt.Sprintf("target path %s already exists", newPathName), nil
+		return OperationResult{Message: fmt.Sprintf("target path %s already exists", newPathName)}
 	}
 
-	os.Rename(path, newPathName)
+	err = os.Rename(path, newPathName)
+	if err != nil {
+		return OperationResult{Error: err}
+	}
 
-	return newPathName, nil
+	return OperationResult{Content: newPathName}
 }
 
-func copyFileOrDir(path, dst string) (string, error) {
+func copyFileOrDir(path, dst string) OperationResult {
 	fileInfo, err, exists := assertPath(path)
 	if err != nil {
-		return "", err
+		return OperationResult{Error: err}
 	}
 	if !exists {
-		return fmt.Sprintf("path not found at %s", path), nil
+		return OperationResult{Message: fmt.Sprintf("path not found at %s", path)}
 	}
 
 	if fileInfo.IsDir() {
@@ -212,47 +221,46 @@ func copyFileOrDir(path, dst string) (string, error) {
 	return copyFile(path, dst)
 }
 
-func copyFile(path, destination string) (string, error) {
+func copyFile(path, destination string) OperationResult {
 	sourceFile, err := os.Open(path)
 	if err != nil {
-		return "", err
+		return OperationResult{Error: err}
 	}
 	defer sourceFile.Close()
 
 	destFile, err := os.Create(destination)
 	if err != nil {
-		return "", err
+		return OperationResult{Error: err}
 	}
 	defer destFile.Close()
 
 	_, err = io.Copy(destFile, sourceFile)
 	if err != nil {
-		return "", err
+		return OperationResult{Error: err}
 	}
 
 	err = destFile.Sync()
 	if err != nil {
-		return "", nil
+		return OperationResult{Error: err}
 	}
 
-	return "File copied to destination", nil
-
+	return OperationResult{Content: "File copied to destination"}
 }
 
-func copyDir(path, dst string) (string, error) {
+func copyDir(path, dst string) OperationResult {
 	pathInfo, err := os.Stat(path)
 	if err != nil {
-		return "", err
+		return OperationResult{Error: err}
 	}
 
 	// Create the destination directory
 	if err := os.MkdirAll(dst, pathInfo.Mode()); err != nil {
-		return "", err
+		return OperationResult{Error: err}
 	}
 
 	entries, err := os.ReadDir(path)
 	if err != nil {
-		return "", err
+		return OperationResult{Error: err}
 	}
 
 	for _, entry := range entries {
@@ -260,15 +268,15 @@ func copyDir(path, dst string) (string, error) {
 		dstPath := filepath.Join(dst, entry.Name())
 
 		if entry.IsDir() {
-			if _, err := copyDir(srcPath, dstPath); err != nil {
-				return "", err
+			if operationResult := copyDir(srcPath, dstPath); operationResult.Error != nil {
+				return operationResult
 			}
 		} else {
-			if _, err := copyFile(srcPath, dstPath); err != nil {
-				return "", err
+			if operationResult := copyFile(srcPath, dstPath); operationResult.Error != nil {
+				return operationResult
 			}
 		}
 	}
 
-	return "", nil
+	return OperationResult{Error: err}
 }

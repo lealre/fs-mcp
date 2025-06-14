@@ -34,26 +34,37 @@ func (s *handler) handlerListEntries(
 		depth = d.(float64)
 	}
 
-	entries, err := listEntries(path, depth, "")
-	if err != nil {
-		log.Printf("ERROR: %v\n", err)
-		return mcp.NewToolResultErrorFromErr("", err), err
+	operationResult := listEntries(path, depth, "")
+	if operationResult.Error != nil {
+		log.Printf("ERROR: %v\n", operationResult.Error)
+		return mcp.NewToolResultErrorFromErr("", operationResult.Error), operationResult.Error
 	}
 
-	return mcp.NewToolResultText(entries), nil
+	if operationResult.Message != "" {
+		log.Printf("WARNING: %v\n", operationResult.Message)
+		return mcp.NewToolResultText(operationResult.Message), nil
+	}
+
+	return mcp.NewToolResultText(operationResult.Content), nil
 }
 
 func (s *handler) handlerReadFile(
 	ctx context.Context, path string, request mcp.CallToolRequest,
 ) (*mcp.CallToolResult, error) {
-	entries, err := readFile(path)
-	if err != nil {
-		log.Printf("ERROR: %v\n", err)
-		return mcp.NewToolResultErrorFromErr("", err), err
+	operationResult := readFile(path)
+	if operationResult.Error != nil {
+		log.Printf("ERROR: %v\n", operationResult.Error)
+		return mcp.NewToolResultErrorFromErr("", operationResult.Error), operationResult.Error
 	}
+
+	if operationResult.Message != "" {
+		log.Printf("WARNING: %v\n", operationResult.Message)
+		return mcp.NewToolResultText(operationResult.Message), nil
+	}
+
 	log.Printf("File sucessfully read from: %v\n", path)
 
-	return mcp.NewToolResultText(entries), nil
+	return mcp.NewToolResultText(operationResult.Content), nil
 }
 
 func (s *handler) handlerWriteToFile(
@@ -61,27 +72,39 @@ func (s *handler) handlerWriteToFile(
 ) (*mcp.CallToolResult, error) {
 	content := request.Params.Arguments["content"].(string)
 
-	msg, err := writeToFile(content, path)
-	if err != nil {
-		log.Printf("ERROR: %v\n", err)
-		return mcp.NewToolResultErrorFromErr("", err), err
+	operationResult := writeToFile(content, path)
+	if operationResult.Error != nil {
+		log.Printf("ERROR: %v\n", operationResult.Error)
+		return mcp.NewToolResultErrorFromErr("", operationResult.Error), operationResult.Error
 	}
+
+	if operationResult.Message != "" {
+		log.Printf("WARNING: %v\n", operationResult.Message)
+		return mcp.NewToolResultText(operationResult.Message), nil
+	}
+
 	log.Printf("File sucessfully written at: %v\n", path)
 
-	return mcp.NewToolResultText(msg), nil
+	return mcp.NewToolResultText(operationResult.Content), nil
 }
 
 func (s *handler) handlerGetFileInfo(
 	ctx context.Context, path string, request mcp.CallToolRequest,
 ) (*mcp.CallToolResult, error) {
-	msg, err := getFileInfo(path)
-	if err != nil {
-		log.Printf("ERROR: %v\n", err)
-		return mcp.NewToolResultErrorFromErr("", err), err
+	operationResult := getFileInfo(path)
+	if operationResult.Error != nil {
+		log.Printf("ERROR: %v\n", operationResult.Error)
+		return mcp.NewToolResultErrorFromErr("", operationResult.Error), operationResult.Error
 	}
+
+	if operationResult.Message != "" {
+		log.Printf("WARNING: %v\n", operationResult.Message)
+		return mcp.NewToolResultText(operationResult.Message), nil
+	}
+
 	log.Printf("Returning files info from file at: %v\n", path)
 
-	return mcp.NewToolResultText(msg), nil
+	return mcp.NewToolResultText(operationResult.Content), nil
 }
 
 func (s *handler) hadlerRenamePath(
@@ -89,14 +112,20 @@ func (s *handler) hadlerRenamePath(
 ) (*mcp.CallToolResult, error) {
 	newPathFinalName := request.Params.Arguments["newPathFinalName"].(string)
 
-	msg, err := renamePath(path, newPathFinalName)
-	if err != nil {
-		log.Printf("ERROR: %v\n", err)
-		return mcp.NewToolResultErrorFromErr("", err), err
+	operationResult := renamePath(path, newPathFinalName)
+	if operationResult.Error != nil {
+		log.Printf("ERROR: %v\n", operationResult.Error)
+		return mcp.NewToolResultErrorFromErr("", operationResult.Error), operationResult.Error
 	}
+
+	if operationResult.Message != "" {
+		log.Printf("WARNING: %v\n", operationResult.Message)
+		return mcp.NewToolResultText(operationResult.Message), nil
+	}
+
 	log.Printf("Returning files info from file at: %v\n", path)
 
-	return mcp.NewToolResultText(msg), nil
+	return mcp.NewToolResultText(operationResult.Content), nil
 }
 
 func (s *handler) hadlerCopyFileOrDir(
@@ -109,14 +138,19 @@ func (s *handler) hadlerCopyFileOrDir(
 		return mcp.NewToolResultText("access denied: path is outside of allowed base directory"), nil
 	}
 
-	msg, err := copyFileOrDir(path, destination)
-	if err != nil {
-		log.Printf("ERROR: %v\n", err)
-		return mcp.NewToolResultErrorFromErr("", err), err
+	operationResult := copyFileOrDir(path, destination)
+	if operationResult.Error != nil {
+		log.Printf("ERROR: %v\n", operationResult.Error)
+		return mcp.NewToolResultErrorFromErr("", operationResult.Error), operationResult.Error
+	}
+
+	if operationResult.Message != "" {
+		log.Printf("WARNING: %v\n", operationResult.Message)
+		return mcp.NewToolResultText(operationResult.Message), nil
 	}
 	log.Printf("Returning files info from file at: %v\n", path)
 
-	return mcp.NewToolResultText(msg), nil
+	return mcp.NewToolResultText(operationResult.Content), nil
 }
 
 func handlersMiddleware(name string, fn server.ToolHandlerFunc) server.ToolHandlerFunc {

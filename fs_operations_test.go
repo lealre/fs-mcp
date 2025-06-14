@@ -182,43 +182,51 @@ func TestListEntries(t *testing.T) {
 	)
 
 	tests := []struct {
-		name   string
-		path   string
-		expect string
-		err    error
+		name          string
+		path          string
+		expectContent string
+		expectMessage string
+		err           error
 	}{
 		{
-			name:   "esisting entries and subentries",
-			path:   tmpDir,
-			expect: expectedSuccess,
-			err:    errors.New(""),
+			name:          "esisting entries and subentries",
+			path:          tmpDir,
+			expectContent: expectedSuccess,
+			expectMessage: "",
+			err:           errors.New(""),
 		},
 		{
-			name:   "passing a file path",
-			path:   "/not/exists/dir",
-			expect: "path not found at /not/exists/dir",
-			err:    errors.New(""),
+			name:          "passing a file path",
+			path:          "/not/exists/dir",
+			expectContent: "",
+			expectMessage: "path not found at /not/exists/dir",
+			err:           errors.New(""),
 		},
 		{
-			name:   "directorie do not exists",
-			path:   filepath.Join(tmpDir, "file_1.txt"),
-			expect: "path is not a directory",
-			err:    errors.New(""),
+			name:          "directorie do not exists",
+			path:          filepath.Join(tmpDir, "file_1.txt"),
+			expectContent: "",
+			expectMessage: "path is not a directory",
+			err:           errors.New(""),
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			entries, err := listEntries(tt.path, 3, "")
+			operationResult := listEntries(tt.path, 3, "")
 
-			if err != nil {
-				if tt.err != errors.New("") && err != tt.err {
-					t.Errorf("got unexpected error %v", err)
+			if operationResult.Error != nil {
+				if tt.err != errors.New("") && operationResult.Error != tt.err {
+					t.Errorf("got unexpected error %v", operationResult.Error)
 				}
 			}
 
-			if entries != tt.expect {
-				t.Errorf("Expected:\n %v\nGot:\n%q", tt.expect, entries)
+			if operationResult.Content != tt.expectContent {
+				t.Errorf("Expected:\n %v\nGot:\n%q", tt.expectContent, operationResult.Content)
+			}
+
+			if operationResult.Message != tt.expectMessage {
+				t.Errorf("Expected:\n %v\nGot:\n%q", tt.expectMessage, operationResult.Message)
 			}
 		})
 	}
@@ -232,36 +240,122 @@ func TestReadFile(t *testing.T) {
 	os.MkdirAll(subDir, 0755)
 
 	tests := []struct {
-		name   string
-		path   string
-		expect string
+		name          string
+		path          string
+		expectMessage string
+		expectContent string
 	}{
 		{
-			name:   "read file sucessfully",
-			path:   filepath.Join(tmpDir, "file_1.txt"),
-			expect: "test",
+			name:          "read file sucessfully",
+			path:          filepath.Join(tmpDir, "file_1.txt"),
+			expectMessage: "",
+			expectContent: "test",
 		},
 		{
-			name:   "read file sucessfully",
-			path:   subDir,
-			expect: "path is a directory, must be a file",
+			name:          "read file sucessfully",
+			path:          subDir,
+			expectMessage: "path is a directory, must be a file",
+			expectContent: "",
 		},
 		{
-			name:   "read file sucessfully",
-			path:   "/not/exists/file.txt",
-			expect: "path not found at /not/exists/file.txt",
+			name:          "read file sucessfully",
+			path:          "/not/exists/file.txt",
+			expectMessage: "path not found at /not/exists/file.txt",
+			expectContent: "",
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			content, err := readFile(tt.path)
-			if err != nil {
-				t.Errorf("unexpected error: %v", err)
+			operationResult := readFile(tt.path)
+			if operationResult.Error != nil {
+				t.Errorf("unexpected error: %v", operationResult.Error)
 			}
 
-			if content != tt.expect {
-				t.Errorf("Got %s, expected: %s", content, tt.expect)
+			if operationResult.Message != tt.expectMessage {
+				t.Errorf("Got %s, expected: %s", operationResult.Message, tt.expectMessage)
+			}
+			if operationResult.Content != tt.expectContent {
+				t.Errorf("Got %s, expected: %s", operationResult.Content, tt.expectContent)
+			}
+		})
+	}
+}
+
+func TestWriteToFile(t *testing.T) {
+	tmpDir := t.TempDir()
+
+	// Setup test file and directory
+	filePath := filepath.Join(tmpDir, "existing.txt")
+	if err := os.WriteFile(filePath, []byte("test"), 0644); err != nil {
+		t.Fatalf("Failed to write test file: %v", err)
+	}
+
+	subDir := filepath.Join(tmpDir, "subdir")
+	if err := os.MkdirAll(subDir, 0755); err != nil {
+		t.Fatalf("Failed to create test directory: %v", err)
+	}
+
+	tests := []struct {
+		name     string
+		content  string
+		path     string
+		expect   string
+		contains bool
+		isError  bool
+	}{
+		{
+			name:     "write to new file",
+			content:  "hello",
+			path:     filepath.Join(tmpDir, "newfile.txt"),
+			expect:   "file written successfully",
+			contains: false,
+			isError:  false,
+		},
+		{
+			name:     "overwrite existing file",
+			content:  "updated",
+			path:     filePath,
+			expect:   "file written successfully",
+			contains: false,
+			isError:  false,
+		},
+		{
+			name:     "path is directory",
+			content:  "should fail",
+			path:     subDir,
+			expect:   "path is a directory, must be a file",
+			contains: false,
+			isError:  false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := writeToFile(tt.content, tt.path)
+
+			if tt.isError {
+				if result.Error == nil {
+					t.Fatal("Expected error but got none")
+				}
+				if !strings.Contains(result.Error.Error(), tt.expect) {
+					t.Errorf("Error does not contain expected message.\nGot: %v\nExpected to contain: %s", result.Error, tt.expect)
+				}
+			} else {
+				if result.Error != nil {
+					t.Fatalf("Unexpected error: %v", result.Error)
+				}
+
+				if tt.contains {
+					if !strings.Contains(result.Content, tt.expect) {
+						t.Errorf("Output does not contain expected substring.\nGot: %s\nExpected to contain: %s", result.Content, tt.expect)
+					}
+				} else {
+					if result.Content != tt.expect && result.Message != tt.expect {
+						t.Errorf("Unexpected result.\nGot Content: %s\nGot Message: %s\nExpected: %s",
+							result.Content, result.Message, tt.expect)
+					}
+				}
 			}
 		})
 	}
@@ -281,46 +375,43 @@ func TestGetFileInfo(t *testing.T) {
 	}
 
 	tests := []struct {
-		name     string
-		path     string
-		expect   string
-		contains bool
+		name          string
+		path          string
+		expectMessage string
+		expectContent string
 	}{
 		{
-			name:     "read file successfully",
-			path:     filePath,
-			expect:   "File: " + filePath,
-			contains: true,
+			name:          "read file successfully",
+			path:          filePath,
+			expectMessage: "",
+			expectContent: "File: " + filePath,
 		},
 		{
-			name:     "path is directory",
-			path:     subDir,
-			expect:   "path is a directory, must be a file",
-			contains: false,
+			name:          "path is directory",
+			path:          subDir,
+			expectMessage: "path is a directory, must be a file",
+			expectContent: "",
 		},
 		{
-			name:     "path does not exist",
-			path:     "/not/exists/file.txt",
-			expect:   "path not found at /not/exists/file.txt",
-			contains: false,
+			name:          "path does not exist",
+			path:          "/not/exists/file.txt",
+			expectMessage: "path not found at /not/exists/file.txt",
+			expectContent: "",
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			content, err := getFileInfo(tt.path)
-			if err != nil {
-				t.Errorf("unexpected error: %v", err)
+			operationResult := getFileInfo(tt.path)
+			if operationResult.Error != nil {
+				t.Errorf("unexpected error: %v", operationResult.Error)
 			}
 
-			if tt.contains {
-				if !strings.Contains(content, tt.expect) {
-					t.Errorf("Output does not contain expected substring.\nGot:\n%s\nExpected to contain:\n%s", content, tt.expect)
-				}
-			} else {
-				if content != tt.expect {
-					t.Errorf("Got:\n%s\nExpected:\n%s", content, tt.expect)
-				}
+			if operationResult.Message != tt.expectMessage {
+				t.Errorf("Got %s, expected: %s", operationResult.Message, tt.expectMessage)
+			}
+			if !strings.Contains(operationResult.Content, tt.expectContent) {
+				t.Errorf("Got %s, expected: %s", operationResult.Content, tt.expectContent)
 			}
 		})
 	}
@@ -343,46 +434,54 @@ func TestRenameFilaAndDir(t *testing.T) {
 	}
 
 	tests := []struct {
-		name        string
-		path        string
-		newPathName string
-		expect      string
+		name          string
+		path          string
+		newPathName   string
+		expectMessage string
+		expectContent string
 	}{
 		{
-			name:        "rename a file",
-			path:        filePathOne,
-			newPathName: "updated_file_name.txt",
-			expect:      filepath.Join(tmpDir, "updated_file_name.txt"),
+			name:          "rename a file",
+			path:          filePathOne,
+			newPathName:   "updated_file_name.txt",
+			expectMessage: "",
+			expectContent: filepath.Join(tmpDir, "updated_file_name.txt"),
 		},
 		{
-			name:        "rename a directory",
-			path:        subDir,
-			newPathName: "updated_dir_name",
-			expect:      filepath.Join(tmpDir, "updated_dir_name"),
+			name:          "rename a directory",
+			path:          subDir,
+			newPathName:   "updated_dir_name",
+			expectMessage: "",
+			expectContent: filepath.Join(tmpDir, "updated_dir_name"),
 		},
 		{
-			name:        "path does not exist",
-			path:        "/not/exists/file.txt",
-			newPathName: "updated_file_name.txt",
-			expect:      "path not found at /not/exists/file.txt",
+			name:          "path does not exist",
+			path:          "/not/exists/file.txt",
+			newPathName:   "updated_file_name.txt",
+			expectMessage: "path not found at /not/exists/file.txt",
+			expectContent: "",
 		},
 		{
-			name:        "file already exists",
-			path:        filePathTwo,
-			newPathName: "updated_file_name.txt",
-			expect:      fmt.Sprintf("target path %s already exists", filepath.Join(tmpDir, "updated_file_name.txt")),
+			name:          "file already exists",
+			path:          filePathTwo,
+			newPathName:   "updated_file_name.txt",
+			expectMessage: fmt.Sprintf("target path %s already exists", filepath.Join(tmpDir, "updated_file_name.txt")),
+			expectContent: "",
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			content, err := renamePath(tt.path, tt.newPathName)
-			if err != nil {
-				t.Errorf("unexpected error: %v", err)
+			operationResult := renamePath(tt.path, tt.newPathName)
+			if operationResult.Error != nil {
+				t.Errorf("unexpected error: %v", operationResult.Error)
 			}
 
-			if content != tt.expect {
-				t.Errorf("Got:\n%s\nExpected:\n%s", content, tt.expect)
+			if operationResult.Message != tt.expectMessage {
+				t.Errorf("Got %s, expected: %s", operationResult.Message, tt.expectMessage)
+			}
+			if operationResult.Content != tt.expectContent {
+				t.Errorf("Got %s, expected: %s", operationResult.Content, tt.expectContent)
 			}
 		})
 	}
@@ -407,40 +506,47 @@ func TestCopyFileOrDir(t *testing.T) {
 	copyDestinationDirPath := filepath.Join(tmpDir, "folder_copy")
 
 	tests := []struct {
-		name        string
-		source      string
-		destination string
-		expect      string
+		name          string
+		source        string
+		destination   string
+		expectMessage string
+		expectContent string
 	}{
 		{
-			name:        "copy file",
-			source:      filePath,
-			destination: destinationFilePath,
-			expect:      "File copied to destination",
+			name:          "copy file",
+			source:        filePath,
+			destination:   destinationFilePath,
+			expectMessage: "",
+			expectContent: "File copied to destination",
 		},
 		{
-			name:        "copy directory",
-			source:      folderPath,
-			destination: copyDestinationDirPath,
-			expect:      "",
+			name:          "copy directory",
+			source:        folderPath,
+			destination:   copyDestinationDirPath,
+			expectMessage: "",
+			expectContent: "",
 		},
 		{
-			name:        "copy non-existent file",
-			source:      filepath.Join(tmpDir, "nonexistent.txt"),
-			destination: filepath.Join(tmpDir, "nonexistent_copy.txt"),
-			expect:      "path not found at " + filepath.Join(tmpDir, "nonexistent.txt"),
+			name:          "copy non-existent file",
+			source:        filepath.Join(tmpDir, "nonexistent.txt"),
+			destination:   filepath.Join(tmpDir, "nonexistent_copy.txt"),
+			expectMessage: "path not found at " + filepath.Join(tmpDir, "nonexistent.txt"),
+			expectContent: "",
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result, err := copyFileOrDir(tt.source, tt.destination)
-			if err != nil {
-				t.Errorf("unexpected error: %v", err)
+			operationResult := copyFileOrDir(tt.source, tt.destination)
+			if operationResult.Error != nil {
+				t.Errorf("unexpected error: %v", operationResult.Error)
 			}
 
-			if result != tt.expect {
-				t.Errorf("Got: %v, Expected: %v", result, tt.expect)
+			if operationResult.Message != tt.expectMessage {
+				t.Errorf("Got %s, expected: %s", operationResult.Message, tt.expectMessage)
+			}
+			if operationResult.Content != tt.expectContent {
+				t.Errorf("Got %s, expected: %s", operationResult.Content, tt.expectContent)
 			}
 		})
 	}
