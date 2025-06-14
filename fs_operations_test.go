@@ -182,43 +182,51 @@ func TestListEntries(t *testing.T) {
 	)
 
 	tests := []struct {
-		name   string
-		path   string
-		expect string
-		err    error
+		name          string
+		path          string
+		expectContent string
+		expectMessage string
+		err           error
 	}{
 		{
-			name:   "esisting entries and subentries",
-			path:   tmpDir,
-			expect: expectedSuccess,
-			err:    errors.New(""),
+			name:          "esisting entries and subentries",
+			path:          tmpDir,
+			expectContent: expectedSuccess,
+			expectMessage: "",
+			err:           errors.New(""),
 		},
 		{
-			name:   "passing a file path",
-			path:   "/not/exists/dir",
-			expect: "path not found at /not/exists/dir",
-			err:    errors.New(""),
+			name:          "passing a file path",
+			path:          "/not/exists/dir",
+			expectContent: "",
+			expectMessage: "path not found at /not/exists/dir",
+			err:           errors.New(""),
 		},
 		{
-			name:   "directorie do not exists",
-			path:   filepath.Join(tmpDir, "file_1.txt"),
-			expect: "path is not a directory",
-			err:    errors.New(""),
+			name:          "directorie do not exists",
+			path:          filepath.Join(tmpDir, "file_1.txt"),
+			expectContent: "",
+			expectMessage: "path is not a directory",
+			err:           errors.New(""),
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			entries, err := listEntries(tt.path, 3, "")
+			operationResult := listEntries(tt.path, 3, "")
 
-			if err != nil {
-				if tt.err != errors.New("") && err != tt.err {
-					t.Errorf("got unexpected error %v", err)
+			if operationResult.Error != nil {
+				if tt.err != errors.New("") && operationResult.Error != tt.err {
+					t.Errorf("got unexpected error %v", operationResult.Error)
 				}
 			}
 
-			if entries != tt.expect {
-				t.Errorf("Expected:\n %v\nGot:\n%q", tt.expect, entries)
+			if operationResult.Content != tt.expectContent {
+				t.Errorf("Expected:\n %v\nGot:\n%q", tt.expectContent, operationResult.Content)
+			}
+
+			if operationResult.Message != tt.expectMessage {
+				t.Errorf("Expected:\n %v\nGot:\n%q", tt.expectMessage, operationResult.Message)
 			}
 		})
 	}

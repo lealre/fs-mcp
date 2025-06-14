@@ -34,13 +34,18 @@ func (s *handler) handlerListEntries(
 		depth = d.(float64)
 	}
 
-	entries, err := listEntries(path, depth, "")
-	if err != nil {
-		log.Printf("ERROR: %v\n", err)
-		return mcp.NewToolResultErrorFromErr("", err), err
+	operationResult := listEntries(path, depth, "")
+	if operationResult.Error != nil {
+		log.Printf("ERROR: %v\n", operationResult.Error)
+		return mcp.NewToolResultErrorFromErr("", operationResult.Error), operationResult.Error
 	}
 
-	return mcp.NewToolResultText(entries), nil
+	if operationResult.Message != "" {
+		log.Printf("WARNING: %v\n", operationResult.Message)
+		return mcp.NewToolResultText(operationResult.Message), nil
+	}
+
+	return mcp.NewToolResultText(operationResult.Content), nil
 }
 
 func (s *handler) handlerReadFile(

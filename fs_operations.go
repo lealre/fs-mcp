@@ -11,6 +11,12 @@ import (
 	"unicode/utf8"
 )
 
+type OperationResult struct {
+	Content string
+	Message string
+	Error   error
+}
+
 // isSafePath checks if the given path is within the base directory and does not contain directory traversal
 func isSafePath(base, target string) bool {
 	absBase, err := filepath.Abs(base)
@@ -36,21 +42,21 @@ func assertPath(path string) (os.FileInfo, error, bool) {
 	return fileInfo, nil, true
 }
 
-func listEntries(path string, depth float64, prefix string) (string, error) {
+func listEntries(path string, depth float64, prefix string) OperationResult {
 	info, err, exists := assertPath(path)
 	if err != nil {
-		return "", err
+		return OperationResult{Error: err}
 	}
 	if !exists {
-		return fmt.Sprintf("path not found at %s", path), nil
+		return OperationResult{Message: fmt.Sprintf("path not found at %s", path)}
 	}
 	if !info.IsDir() {
-		return "path is not a directory", nil
+		return OperationResult{Message: "path is not a directory"}
 	}
 
 	entries, err := os.ReadDir(path)
 	if err != nil {
-		return "", fmt.Errorf("error reading the directory: %s", err)
+		return OperationResult{Error: fmt.Errorf("error reading the directory: %s", err)}
 	}
 
 	allEntries := ""
@@ -62,14 +68,14 @@ func listEntries(path string, depth float64, prefix string) (string, error) {
 		}
 		allEntries += fmt.Sprintf("%s- %s (%s)\n", prefix, entry.Name(), pathType)
 		if entry.IsDir() && depth != 0 {
-			subEntries, err := listEntries(entryPath, depth-1, prefix+"  ")
-			if err != nil {
-				return "", err
+			operationResult := listEntries(entryPath, depth-1, prefix+"  ")
+			if operationResult.Error != nil {
+				return OperationResult{Error: fmt.Errorf("error reading subDirectory: %s", err)}
 			}
-			allEntries += subEntries
+			allEntries += operationResult.Content
 		}
 	}
-	return allEntries, nil
+	return OperationResult{Content: allEntries}
 }
 
 func readFile(path string) (string, error) {
