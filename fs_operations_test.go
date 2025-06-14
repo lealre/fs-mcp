@@ -387,3 +387,61 @@ func TestRenameFilaAndDir(t *testing.T) {
 		})
 	}
 }
+
+func TestCopyFileOrDir(t *testing.T) {
+	tmpDir := t.TempDir()
+
+	filePath := filepath.Join(tmpDir, "file.txt")
+	content := []byte("Hello, World!")
+	if err := os.WriteFile(filePath, content, 0644); err != nil {
+		t.Fatalf("Failed to write test file: %v", err)
+	}
+
+	destinationFilePath := filepath.Join(tmpDir, "file_copy.txt")
+
+	folderPath := filepath.Join(tmpDir, "folder")
+	if err := os.MkdirAll(folderPath, 0755); err != nil {
+		t.Fatalf("Failed to create directory: %v", err)
+	}
+
+	copyDestinationDirPath := filepath.Join(tmpDir, "folder_copy")
+
+	tests := []struct {
+		name        string
+		source      string
+		destination string
+		expect      string
+	}{
+		{
+			name:        "copy file",
+			source:      filePath,
+			destination: destinationFilePath,
+			expect:      "File copied to destination",
+		},
+		{
+			name:        "copy directory",
+			source:      folderPath,
+			destination: copyDestinationDirPath,
+			expect:      "",
+		},
+		{
+			name:        "copy non-existent file",
+			source:      filepath.Join(tmpDir, "nonexistent.txt"),
+			destination: filepath.Join(tmpDir, "nonexistent_copy.txt"),
+			expect:      "path not found at " + filepath.Join(tmpDir, "nonexistent.txt"),
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result, err := copyFileOrDir(tt.source, tt.destination)
+			if err != nil {
+				t.Errorf("unexpected error: %v", err)
+			}
+
+			if result != tt.expect {
+				t.Errorf("Got: %v, Expected: %v", result, tt.expect)
+			}
+		})
+	}
+}
