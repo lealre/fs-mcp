@@ -3,21 +3,30 @@ package main
 import (
 	"context"
 	"log"
+	"path/filepath"
+	"strings"
 
 	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/mark3labs/mcp-go/server"
 )
 
-type handler struct {
-	baseDir string
+type handlerCfg struct {
+	baseDir       string
+	dockerMode    bool
+	volumeMapping *VolumeMapping
 }
 
-func (s *handler) withSafePath(
+type VolumeMapping struct {
+	HostPath      string
+	ContainerPath string
+}
+
+func (h *handlerCfg) withSafePath(
 	handler func(ctx context.Context, path string, request mcp.CallToolRequest) (*mcp.CallToolResult, error),
 ) server.ToolHandlerFunc {
 	return func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		path := request.Params.Arguments["path"].(string)
-		if !isSafePath(s.baseDir, path) {
+		if !isSafePath(h.baseDir, path) {
 			log.Printf("PATH NOT ALLOWED: path is outside of allowed base directory")
 			return mcp.NewToolResultText("access denied: path is outside of allowed base directory"), nil
 		}
@@ -25,7 +34,29 @@ func (s *handler) withSafePath(
 	}
 }
 
-func (s *handler) handlerListEntries(
+func (h *handlerCfg) withDockerPath(
+	handler func(ctx context.Context, path string, request mcp.CallToolRequest) (*mcp.CallToolResult, error),
+) server.ToolHandlerFunc {
+	return func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		hostPath := request.Params.Arguments["path"].(string)
+
+		// Ensure the path is within the allowed host directory
+		if !strings.HasPrefix(hostPath, h.volumeMapping.HostPath) {
+			log.Printf("PATH NOT ALLOWED: %s is outside of %s", hostPath, h.volumeMapping.HostPath)
+			return mcp.NewToolResultText("PATH NOT ALLOWED: path is outside of allowed directory"), nil
+		}
+
+		// Translate host path to container path
+		relPath := strings.TrimPrefix(hostPath, h.volumeMapping.HostPath)
+		containerPath := filepath.Join(h.volumeMapping.ContainerPath, filepath.Clean(relPath))
+
+		log.Printf("Path translation:\nHost: %s\nContainer: %s", hostPath, containerPath)
+
+		return handler(ctx, containerPath, request)
+	}
+}
+
+func (h *handlerCfg) handlerListEntries(
 	ctx context.Context, path string, request mcp.CallToolRequest,
 ) (*mcp.CallToolResult, error) {
 
@@ -48,7 +79,7 @@ func (s *handler) handlerListEntries(
 	return mcp.NewToolResultText(operationResult.Content), nil
 }
 
-func (s *handler) handlerReadFile(
+func (h *handlerCfg) handlerReadFile(
 	ctx context.Context, path string, request mcp.CallToolRequest,
 ) (*mcp.CallToolResult, error) {
 	operationResult := readFile(path)
@@ -67,7 +98,7 @@ func (s *handler) handlerReadFile(
 	return mcp.NewToolResultText(operationResult.Content), nil
 }
 
-func (s *handler) handlerWriteToFile(
+func (h *handlerCfg) handlerWriteToFile(
 	ctx context.Context, path string, request mcp.CallToolRequest,
 ) (*mcp.CallToolResult, error) {
 	content := request.Params.Arguments["content"].(string)
@@ -88,7 +119,7 @@ func (s *handler) handlerWriteToFile(
 	return mcp.NewToolResultText(operationResult.Content), nil
 }
 
-func (s *handler) handlerGetFileInfo(
+func (h *handlerCfg) handlerGetFileInfo(
 	ctx context.Context, path string, request mcp.CallToolRequest,
 ) (*mcp.CallToolResult, error) {
 	operationResult := getFileInfo(path)
@@ -107,7 +138,7 @@ func (s *handler) handlerGetFileInfo(
 	return mcp.NewToolResultText(operationResult.Content), nil
 }
 
-func (s *handler) hadlerRenamePath(
+func (h *handlerCfg) hadlerRenamePath(
 	ctx context.Context, path string, request mcp.CallToolRequest,
 ) (*mcp.CallToolResult, error) {
 	newPathFinalName := request.Params.Arguments["newPathFinalName"].(string)
@@ -128,12 +159,12 @@ func (s *handler) hadlerRenamePath(
 	return mcp.NewToolResultText(operationResult.Content), nil
 }
 
-func (s *handler) hadlerCopyFileOrDir(
+func (h *handlerCfg) hadlerCopyFileOrDir(
 	ctx context.Context, path string, request mcp.CallToolRequest,
 ) (*mcp.CallToolResult, error) {
 	destination := request.Params.Arguments["destination"].(string)
 
-	if !isSafePath(s.baseDir, destination) {
+	if !h.dockerMode && !isSafePath(h.baseDir, destination) {
 		log.Printf("PATH NOT ALLOWED: path is outside of allowed base directory")
 		return mcp.NewToolResultText("access denied: path is outside of allowed base directory"), nil
 	}
