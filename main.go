@@ -121,10 +121,10 @@ func main() {
 
 	flag.Parse()
 	flag.Usage = func() {
-		fmt.Fprintf(flag.CommandLine.Output(), `fs-mcp - A simple filesystem MCP SSE server
-	
+		fmt.Fprintf(flag.CommandLine.Output(), `fs-mcp - A simple filesystem MCP
+
 Usage:
-	fs-mcp --dir <directory> [--port <port>]
+	fs-mcp --dir <directory> [--port <port>] [-t <transport>]
 
 Options:
 `)
