@@ -162,49 +162,67 @@ Options:
 	dockerMode = os.Getenv("FS_MCP_DOCKER_MODE") == "true"
 
 	// directory resolution
+	var volumeStringSlices []string
 	finalDir := ""
 	switch {
-	case dockerMode && volumeMapping != "":
-		parts := strings.Split(volumeMapping, ":")
-		if len(parts) != 2 {
-			log.Fatal("Invalid volume format. Use hostPath:containerPath")
-		}
-		finalDir = parts[1]
+	case dockerMode && volumeMapping == "":
+		fmt.Printf("ERROR: volume flag must be provided when using docker mode\n")
+		os.Exit(1)
 	case dockerMode:
-		finalDir = "/baseDir"
+		volumeStringSlices = strings.Split(volumeMapping, ":")
+		if len(volumeStringSlices) != 2 {
+			fmt.Println("Invalid volume flag format. Use hostPath:containerPath")
+			os.Exit(1)
+		}
+
+		if dir != "" && dir != volumeStringSlices[1] {
+			fmt.Printf("WARNING: your base directory passed in -dir flag will be overwritten by %s\n", volumeStringSlices[1])
+		}
+		finalDir = volumeStringSlices[1]
+
+		if transport != "http" {
+			fmt.Println("WARNING: when running in docker mode, transport type is http by default")
+		}
 	case dir != "":
+		if volumeMapping != "" {
+			fmt.Println("WARNING: -volume flag is used only when running in docker mode. Flag will be ignored")
+		}
 		finalDir = dir
 	default:
-		log.Fatal("\nError: -dir is required")
+		log.Println("Error: -dir is required")
 		flag.Usage()
+		os.Exit(1)
 	}
 
 	_, err, exists := assertPath(finalDir)
 	if err != nil {
-		log.Fatalf("Error reading the base path: %v", err)
+		fmt.Printf("ERROR: error reading the base path: %v\n", err)
+		os.Exit(1)
 	}
 	if !exists {
-		log.Fatalf("Base path not found: %v", finalDir)
-	}
-
-	if dockerMode && volumeMapping == "" {
-		log.Println("Warning: Docker mode is enabled but no volume mapping is specified")
+		fmt.Printf("ERROR: base path not found: %v\n", finalDir)
+		os.Exit(1)
 	}
 
 	// Choose the appropriate MCP server based on dockerMode
 	var mcpServer *server.MCPServer
 	handlerCfg := &handlerCfg{baseDir: finalDir, dockerMode: dockerMode}
 	if dockerMode {
-		if dockerMode && volumeMapping != "" {
-			parts := strings.Split(volumeMapping, ":")
-			if len(parts) == 2 {
-				handlerCfg.volumeMapping = &VolumeMapping{
-					HostPath:      parts[0],
-					ContainerPath: parts[1],
-				}
+		if len(volumeStringSlices) == 2 {
+			handlerCfg.volumeMapping = &VolumeMapping{
+				HostPath:      volumeStringSlices[0],
+				ContainerPath: volumeStringSlices[1],
 			}
 		}
+
 		mcpServer = fileSystemDockerMCP(handlerCfg)
+		addr := fmt.Sprintf(":%d", port)
+		sseServer := server.NewSSEServer(mcpServer, server.WithBaseURL("http://localhost"+addr))
+		log.Printf("SSE server listening on %s in docker mode", addr)
+		if err := sseServer.Start(addr); err != nil {
+			log.Fatalf("Server error: %v", err)
+		}
+		return
 	} else {
 		mcpServer = fileSystemMCP(handlerCfg)
 	}
