@@ -52,7 +52,7 @@ func (h *handlerCfg) withDockerPath(
 		relPath := strings.TrimPrefix(hostPath, h.volumeMapping.HostPath)
 		containerPath := filepath.Join(h.volumeMapping.ContainerPath, filepath.Clean(relPath))
 
-		log.Printf("Path translation:\nHost: %s\nContainer: %s", hostPath, containerPath)
+		log.Printf("Path Translation: %s (host) -> %s (container)", hostPath, containerPath)
 
 		return handler(ctx, containerPath, request)
 	}
