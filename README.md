@@ -1,6 +1,6 @@
 # Filesystem MCP
 
-This repository provides an MCP implementation to offer a suite of tools for interacting with the file system, such as listing directory entries, reading and writing files, retrieving file information, and renaming and copying files or directories.
+This repository provides an implementation of the MCP to offer a suite of tools for interacting with the file system, such as listing directory entries, reading and writing files, retrieving file information, and renaming and copying files or directories.
 
 It allows users to run using stdio or SSE server on a local machine.
 
@@ -8,6 +8,7 @@ It allows users to run using stdio or SSE server on a local machine.
 
 - [Installation](#installation)
   - [Installing Locally by Cloning the Repository](#installing-locally-by-cloning-the-repository)
+  - [Using Docker](#using-docker)
 - [How to Use](#how-to-use)
   - [Example of usage with PydanticAI in Python](#example-of-usage-with-pydanticai-in-python)
     - [Using SSE server](#using-sse-server)
@@ -16,7 +17,7 @@ It allows users to run using stdio or SSE server on a local machine.
 
 ## Installation
 
-1. Ensure that you have [Go](https://golang.org/doc/install) installed on your system (using Go version 1.24).
+1. Ensure that you have [Go](https://golang.org/doc/install) installed on your system. Use Go version 1.24.
 2. Run the following command to install the package using `go install`:
 
 ```bash
@@ -60,6 +61,37 @@ go build
 ```
 
 - This will run the server at `http://localhost:8080`.
+
+### Using Docker
+
+To run the server using Docker, ensure you have Docker installed on your system. You can pull the image from Docker Hub and run it as follows:
+
+```shell
+docker pull lealre/fs-mcp:latest
+```
+
+or create the image from the cloned repo.
+
+Run the container, mapping your desired directory and port:
+
+```shell
+docker run -p 8080:8080 -v /your/directory/path:/baseDir lealre/fs-mcp -volume "/your/directory/path:/baseDir"
+```
+
+- Replace `/your/directory/path` with the actual path you wish to serve.
+- The `-p` flag maps your local machine's port to the Docker container's port.
+- The `-v` flag specifies the path to the base directory similarly in the `--volume` flag to ensure Docker has access to your files.
+
+This setup will start the server at `http://localhost:8080`, serving the specified directory.
+
+> [!IMPORTANT]
+> To this properly works, make sure you pass the same arguments in `-v` and `-volume`.
+
+The container base folder volume name (`/baseDir`) can be any name, and you can change the port by adding the `-port` flag and changing the `-p` in Docker. Example:
+
+```shell
+docker run -p 8081:8081 -v /your/directory/path:/baseDir lealre/fs-mcp -volume "/your/directory/path:/baseDir" -port 8081
+```
 
 ## How to Use
 
