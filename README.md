@@ -64,13 +64,19 @@ go build
 
 ### Using Docker
 
-To run the server using Docker, ensure you have Docker installed on your system. You can pull the image from Docker Hub and run it as follows:
+This MCP can only be run in Docker using the SSE option. To do so, create a volume pointing to the directory you want to expose for file system operations.
+
+You can pull the image from Docker Hub and run it as follows:
 
 ```shell
 docker pull lealre/fs-mcp:latest
 ```
 
-or create the image from the cloned repo.
+Or build the image from the cloned repository:
+
+```shell
+docker build -t fs-mcp .
+```
 
 Run the container, mapping your desired directory and port:
 
@@ -78,16 +84,16 @@ Run the container, mapping your desired directory and port:
 docker run -p 8080:8080 -v /your/directory/path:/baseDir lealre/fs-mcp -volume "/your/directory/path:/baseDir"
 ```
 
-- Replace `/your/directory/path` with the actual path you wish to serve.
+- Replace `/your/directory/path` with the actual path you want to serve.
 - The `-p` flag maps your local machine's port to the Docker container's port.
 - The `-v` flag specifies the path to the base directory similarly in the `--volume` flag to ensure Docker has access to your files.
 
 This setup will start the server at `http://localhost:8080`, serving the specified directory.
 
 > [!IMPORTANT]
-> To this properly works, make sure you pass the same arguments in `-v` and `-volume`.
+> For this to work properly, ensure the paths in `-v` and `-volume` match exactly.
 
-The container base folder volume name (`/baseDir`) can be any name, and you can change the port by adding the `-port` flag and changing the `-p` in Docker. Example:
+The container’s base folder volume name (`/baseDir`) can be customized, and the port can be changed using the `-port` flag (along with adjusting `-p` in Docker). Example:
 
 ```shell
 docker run -p 8081:8081 -v /your/directory/path:/baseDir lealre/fs-mcp -volume "/your/directory/path:/baseDir" -port 8081
