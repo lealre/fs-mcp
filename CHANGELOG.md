@@ -1,4 +1,10 @@
 
+<a name="v0.1.4"></a>
+## [v0.1.4](https://github.com/lealre/fs-mcp/compare/v0.1.3...v0.1.4) (2025-06-16)
+
+* Add option to run using Docker ([#3](https://github.com/lealre/fs-mcp/issues/3))
+* Update `CHANGELOG.md` for `v0.1.3` release
+
 <a name="v0.1.3"></a>
 ## [v0.1.3](https://github.com/lealre/fs-mcp/compare/v0.1.2...v0.1.3) (2025-06-14)
 
